@@ -1,3 +1,6 @@
-"# cs-433-project-2-among-us" 
-"# cs-433-project-2-among-us" 
-"# cs-433-project-2-among-us" 
+HELLO WELCOME TO THE GITHUB AMONG US
+
+SOMEONE IN THE TEAM IS AN IMPOSTER
+
+WHO IS?
+
