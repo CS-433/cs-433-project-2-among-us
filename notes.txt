@@ -1,0 +1,69 @@
+Timeline:
+October 31 – November 7: Look and select projects
+November 8 – 14: Read papers suggested by prof and do literature review/research on the subject
+November 15 – 21: Draw a flowchart and start writing pseudo code. Keep reading the papers and try pseudo code as reading to help understand
+November 22 – 28: Start writing the skeleton of the code
+November 29 – December 5: Finish writing the code and tune the parameters
+December 6 – 12: Write the report and finish up model selection
+December 13 – 17: Contingency days
+
+Deadlines:
+November 7: Project choice finalized
+• Each look at projects for Part A that interests us.
+• Ben emails dude for finance
+• Josh & Lorenzo maybe email 1 lab each for info
+November 14: Literature review
+November 21: Flowchart + pseudo code
+November 28: Preliminary code written
+December 5: Parameter tuning and code optimization done
+December 12: Report written and project done in theory
+December 17: Final submission
+
+==================================================
+
+November 9th meeting:
+
+• Données temporelles
+• Prédire. 90% de bruit
+• Marchait très bien avant 2008
+• Construire portefeuille
+• Prédire évenemments financiers
+• Données ticketing  volume augmenté ou non. +/- 12 événements
+• Peut prédire de façon Markovienne. Bonne mémoire en finance
+• Processus classification future
+• Avoir contexte pour la finance
+• 1 Classification états futurs
+	- Temporal conditional networks (TCN, wavenet)
+	- Modèle rétroaction évenement sur évenement
+	- Événements classifiés. 50000/jour
+• 2 Classifier périodes de marché
+	- Bonnes nouvelles d’un marché sont mauvaises pour un autre
+	- 5 ou 6 états
+	- SVM pas très bon
+	- Méthode non-supervisée
+	- Chaque jour correspond à une lettre et ça fait un texte
+	- Prédire lettre suivante
+	- Montrer que méthode est plus subtile que Markovien
+• Prédire texte
+• 1mois : prédiction de l’état suivant (Prévision de l’état des marchés)
+	- Random Forest
+	- 1 personne RF
+	- 1 personne Deep Learning
+	- 1 personne conditionnel
+
+==================================================
+
+November 16th meeting :
+
+• Questions :
+	- Provided code what does it do?
+		* Gives alphabet
+		* Need to define ourselves what the states are
+		* Notebook
+		* Prend transpose des états
+	- What performance indicator are we looking for?
+	- Period in mind for data?
+	- Where do we get data from?
+		* Enlever première colonnes
+		* Faut plus de titres que de jours
+• Take around a year
