@@ -74,21 +74,32 @@ def get_states(inputFile = "Data/us-equities_logreturns.feather", \
     """
     
     R = pd.read_feather(inputFile)  
-    df_ = pd.DataFrame() # create the empty pandas dataframe
+    df = pd.DataFrame() # create the empty pandas dataframe
     
     # get the stock states for each day
-    for i in range(start_date,end_date):
-        df_ = df_.append(LouvainCorrelationClustering(R[i-memory:i]).T)
+    for i in range(start_date,end_date+1):
+        df = df.append(LouvainCorrelationClustering(R[i-memory:i+1].T).T)
+        
+    # reverse the order of the columns
+    print(df)
+    df = df[df.columns[::-1]]
+    print(df)
     
-    # add the column headers
-    df_.columns = R.columns
+    # give first column its label
+    df.rename(columns={df.columns[0]: "state" }, inplace = True)
+    
+    # assign column names
+    for i in range(1, memory+1):
+        df.rename(columns={df.columns[i]: 'w(i-' + str(i) + ')'}, inplace = True)
+    
     # add the date index column
-    df_.insert(0, 'date', range(start_date,end_date))
+    df.insert(0, 'date', range(start_date,end_date+1))
     
-    return df_
+    return df
 
 if __name__ == "__main__":
     # execute only if run as a script
-    data = get_states(start_date = 500, end_date = 600, memory = 50)
+    #150 - 4548
+    data = get_states(start_date = 150, end_date = 4548, memory = 150)
     # save to CSV
-    data.to_csv('data_500-600_mem50.csv',index=False)
+    #data.to_csv('data_150-4548_mem150.csv',index=False)
