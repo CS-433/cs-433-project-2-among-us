@@ -67,3 +67,25 @@ November 16th meeting :
 		* Enlever première colonnes
 		* Faut plus de titres que de jours
 • Take around a year
+
+==================================================
+
+November 26th meeting :
+
+• Questions :
+	- How exactly to generate the data?. Moving window?
+	- States for one day might not be same as others?
+• Graphs to generate:
+	- Number of days to take in memory
+	- Some kind of cost function
+	- Error bars?
+	- f1/precision/recall/accuracy
+• Try three splits for each model: 70-30, 80-20, 90-10
+• Try different numbers of features (days to take in memory)
+• Preprocessing:
+	- Cluster using Challet's code
+	- 
+• Output CSVs with two columns: date (id) and state (yhat). First row with model info (nbelem=50;lambda=0.02;validation=0.8)
+• Baseline (RF) + tuning
+• Use the right metric --> accuracy or f1
+• Make sure code is ready before hyperparameter tuning
