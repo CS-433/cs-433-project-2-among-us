@@ -16,7 +16,7 @@ UPDATE :
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report
-import seaborn as sn
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -58,8 +58,8 @@ def con_matrix(y_test, y_pred, title):
     #plotting the confusion matrix
     df_cm = pd.DataFrame(confusion,labels,labels)
     plt.figure(figsize=(10,7))
-    sn.set(font_scale=1.4) # for label size
-    sn.heatmap(df_cm, annot=True, cmap='Blues') # font size
+    sns.set(font_scale=1.4) # for label size
+    sns.heatmap(df_cm, annot=True, cmap='Blues') # font size
     plt.yticks(rotation=0)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
@@ -112,10 +112,3 @@ def p_inds(y_test, y_pred):
     print('\nClassification Report\n')
     print(classification_report(y_test, y_pred, target_names=names))
     return 
-
-#%% test
-y_test = np.array([9,6,1,1,2,2])
-y_pred = np.array([9,9,3,6,1,2])
-title = 'test'
-conf = con_matrix(y_test, y_pred, title)
-p_inds(y_test, y_pred)
