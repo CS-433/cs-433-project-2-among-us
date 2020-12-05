@@ -4,6 +4,10 @@ Created on Tue Dec  1 16:54:23 2020
 Accuracy, F1-score, MAE plot with the three models 
 
 @author: PAHU95377
+Modified on : Sat Dec 5 12:44:22 2020
+
+Update : 
+    1- delete the plot title since it will be added in latex later on
 """
 import seaborn as sns
 import pandas as pd
@@ -27,25 +31,21 @@ print (df)
 
 
 fig = plt.figure()
-
 g = sns.catplot(x = 'Days', y='Accuracy', hue = 'Model',data=df, kind='bar',\
                 palette="ch:s=.25,rot=-.25")
 g.despine(left=True)
-plt.title('Accuracy with a test-split ratio of 0.80')
-plt.savefig('Figures\{}.pdf'.format(ratio1))
+plt.savefig('Figures\{}.pdf'.format(ratio1), dpi=1080)
 
 
 fig = plt.figure()
 g = sns.catplot(x = 'Days', y='MAE', hue = 'Model',data=df, kind='bar',\
                 palette="ch:.25") 
 g.despine(left=True)
-plt.title('MAE indicator with a test-split ratio of 0.80')
-plt.savefig('Figures\{}.pdf'.format(ratio2))
+plt.savefig('Figures\{}.pdf'.format(ratio2), dpi =1080)
 
 fig = plt.figure()
 
 g = sns.catplot(x = 'Days', y='F1-score', hue = 'Model',data=df, kind='bar',\
                 palette="ch:s=.25,rot=-.25")
 g.despine(left=True)
-plt.title('F1-score with a test-split ratio of 0.80')
-plt.savefig('Figures\{}.pdf'.format(ratio3))
+plt.savefig('Figures\{}.pdf'.format(ratio3), dpi=1080)
