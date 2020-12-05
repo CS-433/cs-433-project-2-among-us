@@ -81,25 +81,28 @@ def get_states(inputFile = "Data/us-equities_logreturns.feather", \
         df = df.append(LouvainCorrelationClustering(R[i-memory:i+1].T).T)
         
     # reverse the order of the columns
-    print(df)
     df = df[df.columns[::-1]]
-    print(df)
-    
-    # give first column its label
-    df.rename(columns={df.columns[0]: "state" }, inplace = True)
-    
+        
     # assign column names
-    for i in range(1, memory+1):
+    for i in range(0, memory+1):
         df.rename(columns={df.columns[i]: 'w(i-' + str(i) + ')'}, inplace = True)
+        
+    # add the next day's label
+    data = df['w(i-0)']
+    data = np.roll(data,-1)
+    df.insert(0,'true label: w(i+1)', data)
     
     # add the date index column
     df.insert(0, 'date', range(start_date,end_date+1))
+    
+    # drop the last row, which doesn't know the next label
+    df = df[:-1]
     
     return df
 
 if __name__ == "__main__":
     # execute only if run as a script
     #150 - 4548
-    data = get_states(start_date = 150, end_date = 4548, memory = 150)
+    data = get_states(start_date = 150, end_date = 160, memory = 150)
     # save to CSV
-    data.to_csv('data_150-4548_mem150.csv',index=False)
+    data.to_csv('data_150-160_mem150.csv',index=False)
