@@ -3,10 +3,11 @@
 Function RANDOM FOREST.
 Created by : BenMobility
 Created on : 22.11.2020
-Modified on : 3.12.2020
-Based on : ML class at EPFL - PROJECT 2
+Modified on : 5.12.2020
+
 UPDATE : 
     1. added pickle 
+    2. added the title for the performance indicators, hyperparameter tuning.
 """
 #%% USUAL IMPORTS WITH RANDOM FOREST
 import numpy as np
@@ -90,6 +91,7 @@ pickle.dump(best_grid, pickle_out)
 pickle_out.close()
 
 #%% EVALUATE
+filename = "rf_best_grid"
 pickle_in = open(filename, "rb")
 best_grid = pickle.load(pickle_in)
 
@@ -102,8 +104,8 @@ pyplot.legend()
 pyplot.show()
 
 #%% PERFORMANCE
-p_inds(y, yhat)
+class_dict = p_inds(y, yhat,"dude") #add the name of the model
 con_matrix(y, yhat, 'Baseline_splitratio_80')
 
 #%% Plotting Hyperparameter
-hypertuning_rf(train)
+hypertuning_rf(train, "dudesse") #add the name of the model
