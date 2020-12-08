@@ -105,4 +105,4 @@ if __name__ == "__main__":
     #150 - 4548
     data = get_states(start_date = 150, end_date = 160, memory = 150)
     # save to CSV
-    data.to_csv('data_150-160_mem150.csv',index=False)
+    data.to_csv('data_150-160_mem150-2.csv',index=False)
