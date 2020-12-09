@@ -47,15 +47,15 @@ pprint(rf.get_params())
 
 # Randomized Search
 # Number of trees in random forest
-n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1200, num = 2)] # num = 12
+n_estimators = [1200] #[int(x) for x in np.linspace(start = 100, stop = 1200, num = 12)]# num = 12
 # Number of features to consider at every split
-max_features = ['auto', 'sqrt']
+max_features = ['sqrt'] #['auto', 'sqrt']
 # Maximum number of levels in tree
-max_depth = [int(x) for x in np.linspace(5, 30, num = 2)] #num = 6
+max_depth = [30,50] #num = 6 [int(x) for x in np.linspace(5, 30, num = 6)]
 # Minimum number of samples required to split a node
-min_samples_split = [2, 100] #[2, 5, 10, 15, 100]
+min_samples_split = [100,150,200] #[2, 5, 10, 15, 100]
 # Minimum number of samples required at each leaf node
-min_samples_leaf = [1, 10] #[1, 2, 5, 10]
+min_samples_leaf = [10,20] #[1, 2, 5, 10]
 
 # Create the random grid
 random_grid = {'n_estimators': n_estimators,
@@ -85,13 +85,13 @@ for g in ParameterGrid(random_grid):
 print( "OOB: %0.5f" % best_score )
 print( "Best grid:", best_grid)
 #%% PICKLE 
-filename = "rf_best_grid"
+filename = "rf_best_grid_d150_sp80"
 pickle_out = open(filename,"wb")
 pickle.dump(best_grid, pickle_out)
 pickle_out.close()
 
 #%% EVALUATE
-filename = "rf_best_grid"
+filename = "rf_best_grid_d150_sp80"
 pickle_in = open(filename, "rb")
 best_grid = pickle.load(pickle_in)
 
@@ -104,8 +104,8 @@ pyplot.legend()
 pyplot.show()
 
 #%% PERFORMANCE
-class_dict = p_inds(y, yhat,"dude") #add the name of the model
-con_matrix(y, yhat, 'Baseline_splitratio_80')
+class_dict = p_inds(y, yhat,"RF_d150_sp80_perf") #add the name of the model
+con_matrix(y, yhat, 'RF_d150_sp80_matrix')
 
 #%% Plotting Hyperparameter
-hypertuning_rf(train, "dudesse") #add the name of the model
+hypertuning_rf(train, "hyper_RF_d150_sp80") #add the name of the model
