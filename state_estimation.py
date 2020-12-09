@@ -86,17 +86,9 @@ def get_states(inputFile = "Data/us-equities_logreturns.feather", \
     # assign column names
     for i in range(0, memory+1):
         df.rename(columns={df.columns[i]: 'w(i-' + str(i) + ')'}, inplace = True)
-        
-    # add the next day's label
-    data = df['w(i-0)']
-    data = np.roll(data,-1)
-    df.insert(0,'true label: w(i+1)', data)
-    
+           
     # add the date index column
     df.insert(0, 'date', range(start_date,end_date+1))
-    
-    # drop the last row, which doesn't know the next label
-    df = df[:-1]
     
     return df
 
