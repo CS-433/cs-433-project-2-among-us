@@ -282,68 +282,60 @@ def relabel_states(df, cutoff, window, sparse_cutoff = 0):
     df = df[:-1]
                     
                     
-def relabel_states_forced_diag(df, cutoff, window):
-    """ RELABEL_STATES Relabels the states so they match within a dataframe
-        Goes through an entire dataframe df and relabels the states
-        to ensure that they match between the various rows.
-        Forces the diagonal, meaning only the new label on that row is compared
-        with the the previous days in the window
-        and matched to the most similar label from the previous days.
-        Labels must be similar enough to be matched (above the cutoff).
-        If they are not, they are given a new unique label.
+def force_diags(df, method='most_common'):
+    """ FORCE_DIAGS Relabels the states so the diagonals are forced.
+        Goes through an entire dataframe df and makes sure that the
+        diagonals match. This ensures that labelling matches from one day to
+        another. Does this either naively, by copy-pasting the last row and
+        shifting it, or looks at the most frequent member of the diagonal
     
 
     Parameters
     ----------
     df : Pandas dataframe
-        Dataframe to relabel.
-    cutoff : float
-        Similitude cutoff above which similitude must be to assign same label.
-    window : int
-        Number of days to take into consideration to compare with
+        Dataframe on which to force the diagonal.
+    method : string
+        Method to use to force the diagonal. 'copypaste' ply copies the last
+        row and shifts the data accordingly. 'most_common' looksat the most
+        frequent member of the diagonal and uses that value. In the case of a
+        tie, returns a random label amongst the winners.
 
     Returns
     -------
     None.
 
     """
-       
-    # set total number of labels as the number labels on 0th day
-    number_labels = len(np.unique(df.iloc[0]))   
     
-    # loop through all the days in the dataframe
-    for i in range(1,len(df)):
-        print(i)
-        
-        # find today's label since it is the only new value since last row
-        new_label = np.array([df.iloc[i,0]])
-        
-        # best similitude of today's label with the previous days in the window
-        best_sims = get_best_sims(df, i, window, i_labels = new_label)
-        
-        # if the best matching label is above cutoff
-        if best_sims.loc[0, 'val'] >= cutoff:
-            # then assign today's label to yesterday's matching label
-            # find the new state to give
-            df.iloc[i,0] = \
-                int(best_sims.loc[0, 'state_label'])
-        else:
-            # if not, give it a new unique label
-            df.iloc[i,0] = number_labels
-            number_labels += 1
-        # change the rest of the row to match the previous row (force diag)
-        # note: doesn't work, as rows can no longer find the closest match
-        # the following line should be commented
-        df.iloc[i,1:] = np.array(df.iloc[i-1,:-1])
-                    
-    # add the next day's label as the first column to act as the Y
-    data = df['w(i-0)']
-    data = np.roll(data,-1)
-    df.insert(0,'true label: w(i+1)', data)
-    
-    # drop the last row, which doesn't know the next label
-    df = df[:-1]
-    
+    if method == "copypaste":
+        # loop through all the days in the dataframe except the 0th
+        for i in range(1,len(df)):
+            # change the rest of the row to match the previous row (force diag)
+            df.iloc[i,1:] = np.array(df.iloc[i-1,:-1])
+    else:
+        # use the most_common method as default, even if the method was
+        # incorrectly stated
+        m, d = df.shape
+        for i in range(1,m + d):
+            # get the correct submatrix according to location in dataframe
+            if i <= d:
+                # first values where not enough past rows for full diagonal
+                matrix = df.iloc[0:i,d-i:d]
+            elif d < i & i <= m:
+                # middle values where we take the square above
+                matrix = df.iloc[i-d:i,:]
+            else:
+                # end values where not enough values after for full diagonal
+                matrix = df.iloc[i - d:m,0:m + d - i]
+
+            numpy_df = matrix.to_numpy() # working in numpy is easier
+            diagonal = np.diag(numpy_df) # get the diagonal
+            un, ct = np.unique(diagonal,return_counts=True) # get elements
+            # gets the most common element on diagonal
+            # if tied, randomizes the choice between the ties
+            most_common_randomized = np.random.choice(un[ct==max(ct)])
+            # fills the diagonal. dataframe was passed by reference, so changed
+            np.fill_diagonal(numpy_df,most_common_randomized)
+
                 
 def remove_sparse_labels(df, qty_cutoff):
     """ REMOVE_SPARSE_LABELS Remove labels that don't appear often
@@ -410,16 +402,23 @@ def reorder_labels(df, qty_cutoff):
 
 if __name__ == "__main__":
     # if code ran in a standalone version, relabel the given file
-    
     # filenames
-    in_file_path = './Data/data_150-4548_mem150_no_true.csv'
-    out_file_path = './Data/cleaned_data_cutoff0_memory10.csv'
+    in_file_path = './Data/cleaned_data_cutoff0_memory10_sparse_removed.csv'
+    #in_file_path = './Data/data_150-4548_mem150_no_true.csv'
+    out_file_path = './Data/cleaned_data_cutoff0_memory10_most-common.csv'
     # load the data
     data = pd.read_csv(in_file_path,index_col=0)
+    data3 = data.copy()
+    data3 = data3.drop('true label: w(i+1)',axis=1)
+    force_diags(data3)
+    # add the next day's label as the first column to act as the Y
+    col = data3['w(i-0)']
+    col = np.roll(col,-1)
+    data3.insert(0,'true label: w(i+1)', col)
     # to do only part of the data, as it is quite long to relabel everything
     #data2 = data.iloc[:500].copy()
     # relabel the data
-    relabel_states(data,0,10)
+    #relabel_states(data,0,10)
     #0.15,25 and 9 is stable
     # save to CSV
     #data.to_csv(out_file_path,index=True)
