@@ -10,7 +10,6 @@ UPDATE :
     2. added the title for the performance indicators, hyperparameter tuning.
 """
 #%% USUAL IMPORTS WITH RANDOM FOREST
-import numpy as np
 import pandas as pd
 from pprint import pprint
 import pickle
@@ -29,7 +28,7 @@ from rf_helpers import hypertuning_rf,train_test_split,walk_forward_validation
 
 #%% LOAD DATASET AND BASELINE RF
 # load the dataset
-PATH = "Data\data_150-4548_mem150.csv"
+PATH = "Data\cleaned_data_03_50_9.csv"
 data = pd.read_csv(PATH, header=0, index_col=0)
 data = data.to_numpy()
 #train/test split ratio
@@ -85,13 +84,13 @@ for g in ParameterGrid(random_grid):
 print( "OOB: %0.5f" % best_score )
 print( "Best grid:", best_grid)
 #%% PICKLE 
-filename = "rf_best_grid_d150_sp80"
+filename = "rf_best_grid_03_50_9"
 pickle_out = open(filename,"wb")
 pickle.dump(best_grid, pickle_out)
 pickle_out.close()
 
 #%% EVALUATE
-filename = "rf_best_grid_d150_sp80"
+filename = "rf_best_grid_03_50_9"
 pickle_in = open(filename, "rb")
 best_grid = pickle.load(pickle_in)
 
@@ -104,8 +103,8 @@ pyplot.legend()
 pyplot.show()
 
 #%% PERFORMANCE
-class_dict = p_inds(y, yhat,"RF_d150_sp80_perf") #add the name of the model
-con_matrix(y, yhat, 'RF_d150_sp80_matrix')
+class_dict = p_inds(y, yhat,"RF_03_50_9") #add the name of the model
+con_matrix(y, yhat, 'RF_03_50_9_matrix')
 
 #%% Plotting Hyperparameter
-hypertuning_rf(train, "hyper_RF_d150_sp80") #add the name of the model
+hypertuning_rf(train, "hyper_RF_03_50_9") #add the name of the model
