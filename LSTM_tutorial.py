@@ -6,6 +6,7 @@ Created on Sat Dec  5 17:40:58 2020
 """
 
 import numpy
+import sys
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -38,6 +39,8 @@ for i in range(0, n_chars - seq_length, 1):
 	seq_out = raw_text[i + seq_length]
 	dataX.append([char_to_int[char] for char in seq_in])
 	dataY.append(char_to_int[seq_out])
+#dataX = dataX[0:5000]
+#dataY = dataY[0:5000]
 n_patterns = len(dataX)
 print("Total Patterns: ", n_patterns)
 
@@ -54,14 +57,48 @@ y = np_utils.to_categorical(dataY)
 model = Sequential()
 model.add(LSTM(256, input_shape=(X.shape[1], X.shape[2])))
 model.add(Dropout(0.2))
+#for second layer
+#model.add(Dropout(0.2))
+#model.add(LSTM(256))
 model.add(Dense(y.shape[1], activation='softmax'))
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
 #%% checkpointing
 # define the checkpoint
-filepath="weights-improvement-{epoch:02d}-{loss:.4f}.hdf5"
+filepath="weights5k-improvement-{epoch:02d}-{loss:.4f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
 callbacks_list = [checkpoint]
 
 #%% run model
 model.fit(X, y, epochs=20, batch_size=128, callbacks=callbacks_list)
+
+#%% load model
+# load the network weights
+filename = "weights-improvement-20-1.9353.hdf5"
+model = Sequential()
+model.add(LSTM(256, input_shape=(X.shape[1], X.shape[2])))
+model.add(Dropout(0.2))
+model.add(Dense(y.shape[1], activation='softmax'))
+model.load_weights(filename)
+model.compile(loss='categorical_crossentropy', optimizer='adam')
+
+#%% reverse mapping and predictions
+int_to_char = dict((i, c) for i, c in enumerate(chars))
+
+# pick a random seed
+start = numpy.random.randint(0, len(dataX)-1)
+pattern = dataX[start]
+print("Seed:")
+print("\"", ''.join([int_to_char[value] for value in pattern]), "\"")
+# generate characters
+for i in range(1000):
+	x = numpy.reshape(pattern, (1, len(pattern), 1))
+	x = x / float(n_vocab)
+	prediction = model.predict(x, verbose=0)
+	index = numpy.argmax(prediction)
+	result = int_to_char[index]
+	seq_in = [int_to_char[value] for value in pattern]
+	sys.stdout.write(result)
+	pattern.append(index)
+	pattern = pattern[1:len(pattern)]
+print("\nDone.")
