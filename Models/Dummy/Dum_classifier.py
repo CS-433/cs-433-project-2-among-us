@@ -24,7 +24,7 @@ from random import choices, seed
 
 #%% LOAD DATASET AND BASELINE RF
 # load the dataset
-PATH = "Data\cleaned_data_03_50_9.csv"
+PATH = "Data\cleaned_data_cutoff0_memory10_sparse_removed.csv"
 data = pd.read_csv(PATH, header=0, index_col=0)
 data = data.to_numpy()
 
