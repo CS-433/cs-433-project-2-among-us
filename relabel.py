@@ -46,7 +46,7 @@ def find_similarity(df):
     
     # loop through all (but zeroeth) elements of dataframe
     for i in range(1,len(df)):
-        curr_row_labels = df.iloc[i].tolist() # find labels of the row as a list
+        curr_row_labels = df.iloc[i].tolist() # find labels of the row as list
         # get the similarity. shifted by one since it is a time series
         similarities[i-1] = adjusted_rand_score(curr_row_labels[1:-1], \
                                                 prev_row_labels[0:-2])
@@ -108,8 +108,8 @@ def compare_days(df, index, offset=1):
     """
     
     # get the labels for both days
-    i_prev_labels = df.iloc[index-offset].unique()
-    i_curr_labels = df.iloc[index].unique()
+    i_prev_labels = np.unique(df.iloc[index-offset])
+    i_curr_labels = np.unique(df.iloc[index])
     
     # initialize the similitude matrix
     similitudes = np.zeros([len(i_prev_labels),len(i_curr_labels)])
@@ -128,7 +128,72 @@ def compare_days(df, index, offset=1):
     return similitudes
 
 
-def relabel_states(df, cutoff, window):
+def get_best_sims(df, index, window):
+    """ GET_BEST_SIMS Finds the best similitudes in the given window
+        For a given day in the database df, find the best similitude in the
+        given window. Returns the similitudes, the indices where this occured
+        as well as the value of the label
+    
+
+    Parameters
+    ----------
+    df : Pandas dataframe
+        Dataframe on which to get the best similitudes.
+    index : int
+        Index of the row that will be compared
+    window : int
+        Number of days to take into consideration to compare with
+
+    Returns
+    -------
+    best_sims : Pandas dataframe.
+        Dataframe containing the best similitudes and their information
+            - index: the state of the row in the original dataframe, ordered
+                    by unique() function
+            - day : the day in which the best match was found
+            - day_index : the index of the best match in the relative day,
+                    ordered by unique() function
+            - state_label : the label of the state that matches the best
+            - val : the value of similitude between the matches
+
+    """
+        
+    i_labels = np.unique(df.iloc[index]) # labels of the day
+    i_count = len(i_labels) # number of labels
+    
+    # setup the Pandas Dataframe
+    best_sims = pd.DataFrame({'day' : [0] * i_count, \
+                              'day_index' : [0] * i_count, \
+                              'state_label': [0] * i_count,\
+                              'val' : [0] * i_count})
+    
+    # loop through the previous days in the window
+    for offset_days in range(1,window+1):
+        # make sure we don't compare with the given day if negative
+        # this is to ensure the first days that are smaller than the window
+        # don't compare with negative days
+        if index - offset_days >= 0:
+            # similitudes with the previous day of reference
+            sims = compare_days(df, index, offset_days)
+            max_sims = sims.max(axis=0) # find the most similar labels
+            best_fits_indices = sims.argmax(axis=0) # index of best labels
+            
+            # get a boolean array to see if new similitudes are better
+            new_sim_better = (max_sims > best_sims['val']).values
+            
+            # update the values that were better
+            best_sims.loc[new_sim_better, 'day'] = index - offset_days
+            best_sims.loc[new_sim_better, 'day_index'] = \
+                best_fits_indices[new_sim_better]
+            best_sims.loc[new_sim_better,'state_label'] = \
+                np.unique(df.iloc[index - offset_days])\
+                [best_fits_indices[new_sim_better]]
+            best_sims.loc[new_sim_better,'val'] = max_sims[new_sim_better]
+                
+    return best_sims
+    
+
+def relabel_states(df, cutoff, window, sparse_cutoff):
     """ RELABEL_STATES Relabels the states so they match within a dataframe
         Goes through an entire dataframe df and relabels the states
         to ensure that they match between the various rows.
@@ -136,6 +201,8 @@ def relabel_states(df, cutoff, window):
         and matched to the most similar label from the previous days.
         Labels must be similar enough to be matched (above the cutoff).
         If they are not, they are given a new unique label.
+        If a label doesn not have enough members, it is relabelled as a
+        'random' label
     
 
     Parameters
@@ -146,6 +213,8 @@ def relabel_states(df, cutoff, window):
         Similitude cutoff above which similitude must be to assign same label.
     window : int
         Number of days to take into consideration to compare with
+    sparse_cutoff : int
+        Minimum number of elements to keep a label
 
     Returns
     -------
@@ -154,52 +223,40 @@ def relabel_states(df, cutoff, window):
     """
     
     # set total number of labels as the number labels on 0th day
-    number_labels = len(df.iloc[0].unique())
+    number_labels = len(np.unique(df.iloc[0]))
+    
+    remove_sparse_labels(df.iloc[0], sparse_cutoff)     
     
     # loop through all the days in the dataframe
     for i in range(1,len(df)):
+        print(i)
+        # remove today's sparse labels
+        remove_sparse_labels(df.iloc[i], sparse_cutoff)        
+        
         # get information about today's labels
         copied_data = df.iloc[i].copy() # copy to keep original labels
-        i_labels = copied_data.unique() # labels today
+        i_labels = np.unique(copied_data) # labels today
         
-        # setup comparison matrices
-        best_sim_val = np.zeros(len(i_labels)) # best similitude found
-        best_sim_labels = np.zeros(len(i_labels)) # labels of best similitude
-        
-        # loop through the previous days in the window
-        for day in range(1,window+1):
-            # make sure we don't compare with the given day if negative
-            # this is to ensure the first days that are smaller than the window
-            # don't compare with negative days
-            if i - day >= 0:
-                sims = compare_days(df, i, day) # similitudes with previous day
-                max_sims = sims.max(axis=0) # find the most similar labels
-                best_fits_indices = sims.argmax(axis=0) # index of best labels
-                
-                # get a boolean array to see if new similitudes are better
-                new_sim_better = max_sims > best_sim_val
-                
-                # update the values that were better
-                best_sim_val[new_sim_better] = max_sims[new_sim_better]
-                best_sim_labels[new_sim_better] = df.iloc[i - day]\
-                    .unique()[best_fits_indices[new_sim_better]]
-        
+        # find the best similitudes with the previous days in the window
+        best_sims = get_best_sims(df, i, window)   
         
         # loop through all the labels on that day
         for k, label in enumerate(i_labels):
-            # if the best matching label is above cutoff
-            if best_sim_val[k] > cutoff:
-                # then assign today's label to yesterday's matching label
-                # find the new state to give
-                df.iloc[i][copied_data==label] = int(best_sim_labels[k])
-            else:
-                # if not, give it a new unique label
-                df.iloc[i][copied_data==label] = number_labels
-                number_labels += 1
+            # dont relabel the sparse labels
+            if label != -1:
+                # if the best matching label is above cutoff
+                if best_sims.loc[k, 'val'] >= cutoff:
+                    # then assign today's label to yesterday's matching label
+                    # find the new state to give
+                    df.iloc[i][copied_data==label] = \
+                        int(best_sims.loc[k, 'state_label'])
+                else:
+                    # if not, give it a new unique label
+                    df.iloc[i][copied_data==label] = number_labels
+                    number_labels += 1
     
                 
-                
-def remove_sparse_labels(df, cutoff):
+def remove_sparse_labels(df, qty_cutoff):
     """ REMOVE_SPARSE_LABELS Remove labels that don't appear often
         Remove the labels that don't appear often and reorder and renumber
         the label numbers accordingly.
@@ -207,7 +264,7 @@ def remove_sparse_labels(df, cutoff):
 
     Parameters
     ----------
-    df : Pandas dataframe
+    df : Pandas dataframe or series
         Dataframe to remove sparse labels from.
     cutoff : int
         Minimum number of elements to be kept.
@@ -218,19 +275,66 @@ def remove_sparse_labels(df, cutoff):
 
     """
     
-    pass
+    # get counts of unique values
+    values, count = np.unique(df, return_counts=True)
+    
+    # find labels that are too rare
+    to_replace = values[count < qty_cutoff]
+    indices_to_replace = df.isin(to_replace)
+    
+    # replace values
+    df[indices_to_replace] = -1
+    
+    
+def reorder_labels(df, qty_cutoff):
+    """ REORDER_LABELS Removes sparse labels and reorders to fill holes left
+        Goes through a dataframe and removes the sparse labels
+        Then goes through all the holes that were left by removing sparse
+        labels and reorganizes the array to fill the holes
+    
+
+    Parameters
+    ----------
+    df : Pandas dataframe
+        Dataframe to reorder.
+    qty_cutoff : int
+        Minimum number of elements to keep the label.
+
+    Returns
+    -------
+    None.
+
+    """
+    remove_sparse_labels(df, qty_cutoff)
+    
+    # get the unique labels left
+    labels = np.unique(df)
+    
+    # lookup dictionary value -> i where values are sorted in order=
+    mapping = {}
+    for i in range(0,len(labels)):
+        mapping[labels[i]] = i
+        
+    # replace the labels
+    df.replace(mapping, inplace=True)
+    
 
 if __name__ == "__main__":
     # if code ran in a standalone version, relabel the given file
     
     # filenames
     in_file_path = './Data/data_150-4548_mem150.csv'
-    out_file_path = './Data/cleaned_data.csv'
+    out_file_path = './Data/cleaned_data_03_50_9.csv'
     # load the data
     data = pd.read_csv(in_file_path,index_col=0)
     # to do only part of the data, as it is quite long to relabel everything
-    data2 = data.iloc[0:50].copy()
+    data2 = data.iloc[0:500].copy()
+    #c = data.iloc[921]
+    #remove_sparse_labels(c,6)
+    #remove_sparse_labels(data2,50)
     # relabel the data
-    relabel_states(data2,0.5,10)
+    relabel_states(data,0.3,50,9)
+    #0.15,25 and 9 is stable
     # save to CSV
-    #df.to_csv(out_file_path,index=True)
+    data.to_csv(out_file_path,index=True)
+    #a = get_best_sims(data,12,15)
