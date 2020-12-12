@@ -87,18 +87,32 @@ def dm_predict(nbday, tuning = True):
     
   
         # Markov first order
+        #initialize dataframe
         df = np.zeros((len(np.unique(data)), len(np.unique(data))))
+        
+        #compute the weight for each unique label in the dataset
         for i in range(len(np.unique(train[:,0]))-1):
             t = train[train[:,0] ==i]
             unique, counts = np.unique(t[:,1], return_counts=True)
             weight = counts / sum(counts)
+            
+            # save the weights in df
             for j in range(len(weight)-1):
                 df[i,j] = weight[j]
+                
+        #initialize the predidicted labels array
         yhat_mark = np.zeros(len(test))        
+        
+        # predicting the next label with the previous on the test dataset
+        # with the random.choices library and their weights based on markov
+        # first order
         for i in range(len(test)):
             b = test[i,0]
             yhat_mark[i]=choices(np.unique(data), df[b,:])[0]
+            
+        #get the true labels only
         y_true = test[:,0]
+        
     return yhat_mark, y_true
 
 
