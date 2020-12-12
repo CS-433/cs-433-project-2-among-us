@@ -22,6 +22,7 @@ from keras.layers import Dropout
 from keras.layers import LSTM
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
+import Models.RF.p_indicators as p_ind
 
 
 def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
@@ -93,8 +94,14 @@ def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
 
 def create_LSTM_model():
     pass
+    
+def hyperparameter_tune():
+    pass
 
 def test_data():
+    pass
+    
+def train_model():
     pass
 
     
@@ -102,8 +109,33 @@ if __name__ == "__main__":
     # if code ran standalone, perform LSTM
     
     # filenames
-    in_file_path = './Data/data_150-4548_mem150.csv'
+    #in_file_path = './Data/cleaned_data_cutoff0_memory10_sparse_removed.csv'
+    in_file_path = './Data/cleaned_data_cutoff0_memory10_diag_most-common.csv'
     out_file_path = './Data/cleaned_data.csv'
     # load the data
     df = pd.read_csv(in_file_path,index_col=0)
-    a,b,c,d = prepare_data(df,10)
+    X_train, Y_train, X_test, Y_test = prepare_data(df,10)
+    
+    # define the LSTM model
+    model = Sequential()
+    model.add(LSTM(256, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
+    model.add(Dropout(0.2))
+    #for second layer
+    model.add(LSTM(256))
+    model.add(Dropout(0.2))
+    model.add(Dense(Y_train.shape[1], activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+    
+    # define the checkpoint
+    #filepath="weights-diag-most-common-improvement-{epoch:02d}-{loss:.4f}.hdf5"
+    #checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    #callbacks_list = [checkpoint]
+    
+    #%% run model
+    model.fit(X_train, Y_train, epochs=25, batch_size=64)#, callbacks=callbacks_list)
+    
+    # predict
+    prediction = model.predict(X_test, verbose=0)
+    y_pred = np.argmax(prediction,axis=1)
+    Y_test_val = np.argmax(Y_test,axis=1)
+    p_ind.p_inds(Y_test_val,y_pred,'hi')
