@@ -69,7 +69,7 @@ def con_matrix(y_test, y_pred, title):
 
 #%%Performance indicators
 
-def p_inds(y_test, y_pred, title):
+def p_inds(y_test, y_pred):
     """
     Compute the performance indicators F1-score, accuracy, recall, precision
     Prints the macro, micro and weighted performance indicators
@@ -80,9 +80,8 @@ def p_inds(y_test, y_pred, title):
 
     Returns
     -------
-    None.
-    csv file with prediction, recall, f1-score for each states and overall 
-    that includes also accuracy
+    Class_dict: object that prints accuracy, precision, recall
+    f1 for micro, macro and weighted.
 
     """
     #if y_test and y_pred are np.array
@@ -114,7 +113,4 @@ def p_inds(y_test, y_pred, title):
     print(classification_report(y_test, y_pred, target_names=names))
     class_dict = classification_report(y_test, y_pred, target_names=names, \
                                        output_dict=True)
-    class_d = pd.DataFrame.from_dict(class_dict)
-    filename = ('Data/{}.csv'.format(title))
-    class_d.to_csv(filename)
-    return
+    return class_dict
