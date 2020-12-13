@@ -40,14 +40,11 @@ def train_test_split(data, n_train):
     return data[:n_train, :], data[n_train:, :]
 
 #dummy prediction
-def dm_predict(nbday, tuning = True):
+def dm_predict():
     """
     Parameters
     ----------
-    tuning : True / False, optional
-        it is for the other classifiers! 
-    nbdays : integer
-        Number of days memory between [2, 10, 50, 100, 150]
+    None
 
     Returns
     -------
@@ -56,62 +53,44 @@ def dm_predict(nbday, tuning = True):
     y_true : n x 1, integers
         the true labels of the dataset
     """
-
-    if tuning == True:
-        print()
-        print('There is no tuning to do with Dummy!\n')
-        print()
-    
-    #check nbdays
-    check = [2, 10, 50, 100, 150]
-    if nbday not in check:
-        print('\nWrong number of days!\n')
-        print('Please choose between: 2, 10, 50, 100, 150')
-        yhat_mark = 0
-        y_true = 0
-    if nbday in check:
-        
-        #add one to nb of days to consider the first consider as the label
-        nbdays = nbday + 1
-        
-        # load the dataset
-        PATH = "Data\preprocessed.csv"
-        data = pd.read_csv(PATH, header=0, index_col=0)
-        data = data.to_numpy()
-        data = data[:,:nbdays]
-        
-        #split
-        ratio = 0.80
-        n_train = int(len(data) * ratio)
-        train, test = train_test_split(data, n_train)
-    
   
-        # Markov first order
-        #initialize dataframe
-        df = np.zeros((len(np.unique(data)), len(np.unique(data))))
+    # load the dataset
+    PATH = "Data\preprocessed.csv"
+    data = pd.read_csv(PATH, header=0, index_col=0)
+    data = data.to_numpy()
+    
+    #split
+    ratio = 0.80
+    n_train = int(len(data) * ratio)
+    train, test = train_test_split(data, n_train)
+
+  
+    # Markov first order
+    #initialize dataframe
+    df = np.zeros((len(np.unique(data)), len(np.unique(data))))
+    
+    #compute the weight for each unique label in the dataset
+    for i in range(len(np.unique(train[:,0]))-1):
+        t = train[train[:,0] ==i]
+        unique, counts = np.unique(t[:,1], return_counts=True)
+        weight = counts / sum(counts)
         
-        #compute the weight for each unique label in the dataset
-        for i in range(len(np.unique(train[:,0]))-1):
-            t = train[train[:,0] ==i]
-            unique, counts = np.unique(t[:,1], return_counts=True)
-            weight = counts / sum(counts)
+        # save the weights in df
+        for j in range(len(weight)-1):
+            df[i,j] = weight[j]
             
-            # save the weights in df
-            for j in range(len(weight)-1):
-                df[i,j] = weight[j]
-                
-        #initialize the predidicted labels array
-        yhat_mark = np.zeros(len(test))        
+    #initialize the predidicted labels array
+    yhat_mark = np.zeros(len(test))        
+    
+    # predicting the next label with the previous on the test dataset
+    # with the random.choices library and their weights based on markov
+    # first order
+    for i in range(len(test)):
+        b = test[i,0]
+        yhat_mark[i]=choices(np.unique(data), df[b,:])[0]
         
-        # predicting the next label with the previous on the test dataset
-        # with the random.choices library and their weights based on markov
-        # first order
-        for i in range(len(test)):
-            b = test[i,0]
-            yhat_mark[i]=choices(np.unique(data), df[b,:])[0]
-            
-        #get the true labels only
-        y_true = test[:,0]
+    #get the true labels only
+    y_true = test[:,0]
         
     return yhat_mark, y_true
 

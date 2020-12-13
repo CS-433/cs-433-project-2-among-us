@@ -13,9 +13,9 @@
     1. 
 """
 
-#from DM_run import dm_predict
+from DM_run import dm_predict
 #from LSTM_run import lstm_predict
-#from RF_run import rf_predict
+from RF_run import rf_predict
 #from TCN_run import tcn_predict
 from Helpers.p_indicators import p_inds
 
@@ -43,20 +43,20 @@ def run_models(model, history_window=10, hyperparam_opt=False):
     print("Performing prediction with {} model.".format(model))
     if model.lower() == "dummy":
         pass
-        #y_pred, y_true = dm_predict()
+        y_pred, y_true = dm_predict()
     elif model.lower() == "lstm":
         pass
         #y_pred, y_true = lstm_predict(hyperparam_opt, history_window)
     elif model.lower() == "rf":
         pass
-        #y_pred, y_true = rf_predict(hyperparam_opt, history_window)
+        y_pred, y_true = rf_predict(history_window, hyperparam_opt)
     elif model.lower() == "tcn":
         pass
         #y_pred, y_true = tcn_predict(hyperparam_opt, history_window)
     else:
         print("Unknown model chosen: ", model)
         
-    #p_inds(y_true, y_pred)
+    p_inds(y_true, y_pred)
 
 if __name__ == "__main__":
     # initialize variables
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # if not using dummy, ask the other parameters
     if model.lower() != "dummy":
         hyperparam_opt = input("Would you like to perform hyperparameter tuning (1/0)?\n")
-        history_window = input("How long would you like the history window to be (days)?\n")
+        history_window = input("How long would you like the history window to be (days)?\nMust be 2, 10, 50, 100 or 150 if no tuning is done.\n")
     
     # sanitize user input for hyperparam
     if hyperparam_opt == 1:
@@ -89,6 +89,7 @@ if __name__ == "__main__":
     try:
         if int(history_window) >= 1 & int(history_window) <= 150:
             print("History window will be set to {} days.".format(history_window))
+            history_window = int(history_window)
         else:
             print("Invalid history window chosen. History window will be set to 1 day.")
             history_window = 1
