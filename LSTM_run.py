@@ -5,7 +5,7 @@
 
     Created by : newbi
     Created on Sun Dec  6 18:22:13 2020
-    Modified on : 07.12.2020
+    Modified on : 12.12.2020
     Based on : ML class at EPFL 
     Info : 
     
