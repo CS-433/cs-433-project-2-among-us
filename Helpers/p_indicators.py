@@ -98,6 +98,10 @@ def p_inds(y_test, y_pred):
     names = []
     for i in range(len(labels)):
         names.append('{}'.format(labels[i]))
+        
+    print('\nClassification Report\n')
+    print(classification_report(y_test, y_pred, target_names=names))
+        
     print('Model Performance\n')
     print('\nAccuracy: {:.2f}\n'.format(accuracy_score(y_test, y_pred)))
     print('Micro Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='micro')))
@@ -109,8 +113,7 @@ def p_inds(y_test, y_pred):
     print('Weighted Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='weighted')))
     print('Weighted Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='weighted')))
     print('Weighted F1-score: {:.2f}'.format(f1_score(y_test, y_pred, average='weighted')))
-    print('\nClassification Report\n')
-    print(classification_report(y_test, y_pred, target_names=names))
+
     class_dict = classification_report(y_test, y_pred, target_names=names, \
                                        output_dict=True)
     return class_dict

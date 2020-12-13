@@ -72,7 +72,7 @@ def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
     # get X and Y data
     dataX = df_numpy[:,1:]
     dataY = df_numpy[:,0]
-    
+        
     # reshape X to be [samples, time steps, features]
     if form == 'feature':
         X_train = np.reshape(dataX[:n_train,:memory], (n_train, 1, memory))
@@ -86,8 +86,9 @@ def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
     X_test = X_test / float(n_classes)
     
     # one hot encode the output variable
-    Y_train = np_utils.to_categorical(dataY[:n_train])
-    Y_test = np_utils.to_categorical(dataY[n_train:])
+    Y_encoded = np.utils.to_categorical(dataY)
+    Y_train = Y_encoded[:n_train]
+    Y_test = Y_encoded[n_train:]
     
     return X_train, Y_train, X_test, Y_test
     

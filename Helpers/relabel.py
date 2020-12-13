@@ -233,16 +233,15 @@ def relabel_states(df, cutoff, window, sparse_cutoff = 0):
 
     """
     
+    
     # set total number of labels as the number labels on 0th day
     number_labels = len(np.unique(df.iloc[0]))
-    
-    remove_sparse_labels(df.iloc[0], sparse_cutoff)     
-    
+        
     # loop through all the days in the dataframe
     for i in range(1,len(df)):
-        print(i)
+        print("Relabelling day {}.".format(i))
         # remove today's sparse labels
-        remove_sparse_labels(df.iloc[i], sparse_cutoff)        
+        #remove_sparse_labels(df.iloc[i], sparse_cutoff)        
         
         # get information about today's labels
         copied_data = df.iloc[i].copy() # copy to keep original labels
@@ -253,26 +252,30 @@ def relabel_states(df, cutoff, window, sparse_cutoff = 0):
         
         # loop through all the labels on that day
         for k, label in enumerate(i_labels):
-            # dont relabel the sparse labels
-            if label != -1:
-                # if there is no matching label, then it is a brand new unique
-                # label that has appeared in position zero. it should have a
-                # new label
-                if best_sims.loc[k, 'val'] == 0:
-                    # if not, give it a new unique label
-                    df.iloc[i][copied_data==label] = number_labels
-                    number_labels += 1
-                # if the best matching label is above cutoff
-                elif best_sims.loc[k, 'val'] >= cutoff:
-                    # then assign today's label to yesterday's matching label
-                    # find the new state to give
-                    df.iloc[i][copied_data==label] = \
-                        int(best_sims.loc[k, 'state_label'])
-                else:
-                    # if not, give it a new unique label
-                    df.iloc[i][copied_data==label] = number_labels
-                    number_labels += 1
-                    
+            # if there is no matching label, then it is a brand new unique
+            # label that has appeared in position zero. it should have a
+            # new label
+            if best_sims.loc[k, 'val'] == 0:
+                # if not, give it a new unique label
+                df.iloc[i][copied_data==label] = number_labels
+                number_labels += 1
+            # if the best matching label is above cutoff
+            elif best_sims.loc[k, 'val'] >= cutoff:
+                # then assign today's label to yesterday's matching label
+                # find the new state to give
+                df.iloc[i][copied_data==label] = \
+                    int(best_sims.loc[k, 'state_label'])
+            else:
+                # if not, give it a new unique label
+                df.iloc[i][copied_data==label] = number_labels
+                number_labels += 1
+                        
+    # force the diagonals
+    force_diags(df)
+        
+    # remove the sparse labels
+    reorder_labels(df, 1000)
+    
     # add the next day's label as the first column to act as the Y
     data = df['w(i-0)']
     data = np.roll(data,-1)
@@ -314,18 +317,18 @@ def force_diags(df, method='most_common'):
     else:
         # use the most_common method as default, even if the method was
         # incorrectly stated
-        m, d = df.shape
-        for i in range(1,m + d):
+        m, D = df.shape
+        for i in range(1,m + D):
             # get the correct submatrix according to location in dataframe
-            if i <= d:
+            if i <= D:
                 # first values where not enough past rows for full diagonal
-                matrix = df.iloc[0:i,d-i:d]
-            elif d < i & i <= m:
+                matrix = df.iloc[0:i,D-i:D]
+            elif D < i & i <= m:
                 # middle values where we take the square above
-                matrix = df.iloc[i-d:i,:]
+                matrix = df.iloc[i-D:i,:]
             else:
                 # end values where not enough values after for full diagonal
-                matrix = df.iloc[i - d:m,0:m + d - i]
+                matrix = df.iloc[i - D:m,0:m + D - i]
 
             numpy_df = matrix.to_numpy() # working in numpy is easier
             diagonal = np.diag(numpy_df) # get the diagonal
@@ -403,31 +406,12 @@ def reorder_labels(df, qty_cutoff):
 if __name__ == "__main__":
     # if code ran in a standalone version, relabel the given file
     # filenames
-    in_file_path = './Data/cleaned_data_cutoff0_memory10_sparse_removed.csv'
+    in_file_path = './Data/Labelled_data_150_4548_mem150.csv'
     #in_file_path = './Data/data_150-4548_mem150_no_true.csv'
     out_file_path = './Data/cleaned_data_cutoff0_memory10_most-common.csv'
     # load the data
     data = pd.read_csv(in_file_path,index_col=0)
-    data3 = data.copy()
-    data3 = data3.drop('true label: w(i+1)',axis=1)
-    force_diags(data3)
-    # add the next day's label as the first column to act as the Y
-    col = data3['w(i-0)']
-    col = np.roll(col,-1)
-    data3.insert(0,'true label: w(i+1)', col)
-    # to do only part of the data, as it is quite long to relabel everything
-    #data2 = data.iloc[:500].copy()
     # relabel the data
-    #relabel_states(data,0,10)
-    #0.15,25 and 9 is stable
-    # save to CSV
-    #data.to_csv(out_file_path,index=True)
-    #a = get_best_sims(data,12,15)
-    
-    # for i in range(0,len(data2)):
-    #     un, ct = np.unique(data2.iloc[i],return_counts=True)
-    #     count = ct[un[un==data2.iloc[i,0]]]
-    #     if count == 1:
-    #         print(i)
-    #         #22,189,1224,2172,2197,2219,2320,2765,3143,3249,3547,3838,3953,4225
-    #         #22,47,69,170
+    relabel_states(data,0,10)
+    # save to csv
+    data.to_csv(out_file_path)

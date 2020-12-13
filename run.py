@@ -13,13 +13,18 @@
     1. 
 """
 
+import pandas as pd
+
 from DM_run import dm_predict
 #from LSTM_run import lstm_predict
 from RF_run import rf_predict
 #from TCN_run import tcn_predict
-from Helpers.p_indicators import p_inds
 
-def run_models(model, history_window=10, hyperparam_opt=False):
+from Helpers.p_indicators import p_inds
+from Helpers.performance_comparison import perf_comp
+
+def run_models(model, history_window=10, hyperparam_opt=False, \
+               results_file = './Data/Results.csv'):
     """ RUN_MODELS Runs the selected model with the given settings.
         Runs the selected model and then prints out the metrics and generates
         graphs.
@@ -52,11 +57,29 @@ def run_models(model, history_window=10, hyperparam_opt=False):
         y_pred, y_true = rf_predict(history_window, hyperparam_opt)
     elif model.lower() == "tcn":
         pass
-        #y_pred, y_true = tcn_predict(hyperparam_opt, history_window)
+        #y_pred, y_true = tcn_predict(hyperparam_opt, history_windowR)
     else:
         print("Unknown model chosen: ", model)
         
-    p_inds(y_true, y_pred)
+    # get the performance indicators
+    print("Calculating performance indicators.")
+    class_dict = p_inds(y_true, y_pred)
+    
+    # load previous indicators    
+    df = pd.read_csv(results_file)
+    # get the current row of interest
+    row = df.loc[(df['Model'] == model.lower()) & \
+                 (df['Memory'] == history_window)]
+    # change the new data
+    row['accuracy'] = class_dict['accuracy']
+    row['precision'] = class_dict['weighted avg']['precision']
+    row['f1'] = class_dict['weighted avg']['f1-score']
+    row['recall'] = class_dict['weighted avg']['recall']
+    # save the new figures
+    perf_comp(df)
+    # save the data
+    df.to_csv(results_file,index=False)
+
 
 if __name__ == "__main__":
     # initialize variables
@@ -74,11 +97,11 @@ if __name__ == "__main__":
     
     # if not using dummy, ask the other parameters
     if model.lower() != "dummy":
-        hyperparam_opt = input("Would you like to perform hyperparameter tuning (1/0)?\n")
+        hyperparam_opt = input("Would you like to perform hyperparameter tuning (1 for true/0 for false)?\n")
         history_window = input("How long would you like the history window to be (days)?\nMust be 2, 10, 50, 100 or 150 if no tuning is done.\n")
     
     # sanitize user input for hyperparam
-    if hyperparam_opt == 1:
+    if hyperparam_opt == "1":
         print("Hyperparameter optimization will be performed.")
         hyperparam_opt = True
     else:
