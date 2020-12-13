@@ -67,18 +67,22 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     
     # load previous indicators    
     df = pd.read_csv(results_file)
-    # get the current row of interest
-    row = df.loc[(df['Model'] == model.lower()) & \
-                 (df['Memory'] == history_window)]
-    # change the new data
-    row['accuracy'] = class_dict['accuracy']
-    row['precision'] = class_dict['weighted avg']['precision']
-    row['f1'] = class_dict['weighted avg']['f1-score']
-    row['recall'] = class_dict['weighted avg']['recall']
-    # save the new figures
-    perf_comp(df)
+    # find which row to update
+    row_idx = (df['Model'] == model.lower()) & \
+                 (df['Memory'] == history_window)
+    # update current row
+    df.loc[row_idx,'Model'] = model
+    df.loc[row_idx,'Memory'] = history_window
+    df.loc[row_idx,'accuracy'] = class_dict['accuracy']
+    df.loc[row_idx,'precision'] = class_dict['weighted avg']['precision']
+    df.loc[row_idx,'f1'] = class_dict['weighted avg']['f1-score']
+    df.loc[row_idx,'recall'] = class_dict['weighted avg']['recall']
+  
     # save the data
     df.to_csv(results_file,index=False)
+  
+    # save the new figures
+    perf_comp(df)
 
 
 if __name__ == "__main__":
