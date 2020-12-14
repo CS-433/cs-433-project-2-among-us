@@ -37,15 +37,24 @@ def tcn_predict(hyperparam_opt, history_window):
        
         #instiatate a tuner on a given model with the objective of optimizing val_accuracy usig random search/hyperband more efficient 
         #def tune_model(build_model,):
+        #Hyperband version
+        #tuner = Hyperband(build_model,objective='val_accuracy', max_epochs=30, hyperband_iterations=2, executions_per_trial=3, directory='C:/Users/loren/OneDrive/Documenti/my_dir/ggg')
+
+        #tuner.search_space_summary()
+
+        #tuner.search(X_train,Y_train,epochs=30,validation_data=(X_test, Y_test),callbacks=[tf.keras.callbacks.EarlyStopping(patience=1)])
+        #best_model = tuner.get_best_models(1)[0]
+        #best_hyperparameters = tuner.get_best_hyperparameters(1)[0]
+        #tuner.results_summary()
         #still have to adjust the parameter settings and some spaces :)
-        tuner = RandomSearch(build_model,objective='val_accuracy',max_trials=5,executions_per_trial=3,directory='..')
+        #tuner = RandomSearch(build_model,objective='val_accuracy',max_trials=5,executions_per_trial=3,directory='..')
         #get a search space summary
-        tuner.search_space_summary()
-        #start the tuning process
+        #tuner.search_space_summary()
+        #start the tuning process with random search
         tuner.search(X_train,Y_train,epochs=5,validation_data=(X_test, Y_test))
         
         tuner.results_summary()
-        best_model = tuner.get_best_models(num_models=2)
+        #best_model = tuner.get_best_models(num_models=2)
         
         #run model
         best_model.fit(X_train, Y_train, epochs=30)
