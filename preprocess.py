@@ -18,8 +18,10 @@ if __name__ == "__main__":
     # get the states for days 150 to 4548
     data = get_states(start_date = 150, end_date = 4548, memory = 150)
     # save to CSV
-    data.to_csv(labelled_file_path,index=False)
+    data.to_csv(labelled_file_path,index=True)
+    # read a CSV if the states were already obtained
+    #data = pd.read_csv(labelled_file_path,index_col=0)
     # relabel data so it matches between days
-    relabel_states(data,0,25)
+    relabel_states(data,0,10)
     # save to csv
     data.to_csv(preprocessed_file_path)

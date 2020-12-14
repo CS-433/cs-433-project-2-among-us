@@ -12,52 +12,62 @@ Update :
 """
 import seaborn as sns
 import pandas as pd
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
-def perf_comp():
-    models = {'Model': ['Dummy Classifier','Random Forest', 'LSTM', 'TCN', \
-                        'Dummy Classifier','Random Forest', 'LSTM', 'TCN', \
-                        'Dummy Classifier','Random Forest', 'LSTM', 'TCN', \
-                        'Dummy Classifier','Random Forest', 'LSTM', 'TCN', \
-                        'Dummy Classifier','Random Forest', 'LSTM', 'TCN'],
-              'Accuracy': [0.12, 0.14, 0.16, 0.17, \
-                           0.11, 0.13, 0.16, 0.17, \
-                           0.11, 0.14, 0.16, 0.17, \
-                           0.11, 0.15, 0.16, 0.17, \
-                           0.11, 0.14, 0.16, 0.17],
-              'F1-score': [0.08, 0.10, 0.16, 0.17, \
-                           0.07, 0.10, 0.16, 0.17, \
-                           0.07, 0.10, 0.16, 0.17, \
-                           0.07, 0.12, 0.16, 0.17, \
-                           0.07, 0.12, 0.16, 0.17],
-              'Recall' :  [0.12,0.14,0.12,0.14,\
-                           0.11,0.13,0.12,0.14,\
-                           0.11,0.14,0.12,0.14,\
-                           0.11,0.15,0.12,0.14,\
-                           0.11,0.14,0.12,0.14],
-              'Days':     [150,150,150,150,\
-                           100,100,100,100,\
-                            50,50,50,50,\
-                            10,10,10,10,\
-                             2,2,2,2]
-              }
+def perf_comp(df):
+    # load data manually, normally commented
+    #in_file_path = './Data/Results.csv'
+    #df = pd.read_csv(in_file_path)
     
-    df = pd.DataFrame(models, columns = ['Model', 'Accuracy', 'Recall', 'Days','F1-score'])
+    plot_data = df.loc[df['Model'] != 'DUMMY'] # remove dummy from bars
+    plt.close('all') # close open graphs
     
-    print (df)
-      
-    g = sns.catplot(x = 'Days', y='Accuracy', hue = 'Model',data=df, kind='bar',\
-                    palette="ch:s=.25,rot=-.25")
+    # ACCURACY PLOT
+    g = sns.catplot(x = 'Memory', y='accuracy', hue = 'Model',data=plot_data, \
+                    kind='bar', palette="ch:s=.25,rot=-.25")
     g.despine(left=True)
+    
+    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'accuracy'].values)
+    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'accuracy'], 'DUMMY', \
+             fontsize=9, va='center', ha='center')
+    
     plt.savefig('Figures\overall_accuracy.pdf', dpi=1080)
     
-    g = sns.catplot(x = 'Days', y='Recall', hue = 'Model',data=df, kind='bar',\
-                    palette="ch:.25") 
+    
+    # RECALL PLOT
+    g = sns.catplot(x = 'Memory', y='recall', hue = 'Model',data=plot_data, \
+                    kind='bar', palette="ch:.25") 
     g.despine(left=True)
+    
+    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'recall'].values)
+    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'recall'], 'DUMMY', \
+             fontsize=9, va='center', ha='center')
+        
     plt.savefig('Figures\overall_recall.pdf', dpi =1080)
     
-    g = sns.catplot(x = 'Days', y='F1-score', hue = 'Model',data=df, kind='bar',\
-                    palette="ch:s=.25,rot=-.25")
+    
+    # F1 PLOT
+    g = sns.catplot(x = 'Memory', y='f1', hue = 'Model',data=plot_data, \
+                    kind='bar', palette="ch:s=.25,rot=-.25")
     g.despine(left=True)
+    
+    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'f1'].values)
+    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'f1'], 'DUMMY', \
+             fontsize=9, va='center', ha='center')
+        
     plt.savefig('Figures\overall_f1-score.pdf', dpi=1080)
-    return
+    
+    
+    # PRECISION PLOT
+    g = sns.catplot(x = 'Memory', y='precision', hue = 'Model',data=plot_data,\
+                    kind='bar', palette="ch:s=.25,rot=-.25")
+    g.despine(left=True)
+    
+    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'precision'].values)
+    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'precision'], 'DUMMY', \
+             fontsize=9, va='center', ha='center')
+        
+    plt.savefig('Figures\overall_precision.pdf', dpi=1080)
+    
+if __name__ == "__main__":
+    perf_comp(1)

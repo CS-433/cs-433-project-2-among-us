@@ -37,7 +37,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     hyperparam_opt : Boolean
         Whether to perform a hyperparameter optimization or not.
     history_window : int
-        How many days to.
+        How many days to consider in memory.
 
     Returns
     -------
@@ -46,16 +46,16 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     """
     
     print("Performing prediction with {} model.".format(model))
-    if model.lower() == "dummy":
+    if model.upper() == "DUMMY":
         pass
         y_pred, y_true = dm_predict()
-    elif model.lower() == "lstm":
+    elif model.upper() == "LSTM":
         pass
         #y_pred, y_true = lstm_predict(hyperparam_opt, history_window)
-    elif model.lower() == "rf":
+    elif model.upper() == "RF":
         pass
         y_pred, y_true = rf_predict(history_window, hyperparam_opt)
-    elif model.lower() == "tcn":
+    elif model.upper() == "TCN":
         pass
         #y_pred, y_true = tcn_predict(hyperparam_opt, history_windowR)
     else:
@@ -68,10 +68,10 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     # load previous indicators    
     df = pd.read_csv(results_file)
     # find which row to update
-    row_idx = (df['Model'] == model.lower()) & \
+    row_idx = (df['Model'] == model.upper()) & \
                  (df['Memory'] == history_window)
     # update current row
-    df.loc[row_idx,'Model'] = model
+    df.loc[row_idx,'Model'] = model.upper()
     df.loc[row_idx,'Memory'] = history_window
     df.loc[row_idx,'accuracy'] = class_dict['accuracy']
     df.loc[row_idx,'precision'] = class_dict['weighted avg']['precision']
@@ -92,15 +92,15 @@ if __name__ == "__main__":
     history_window = 1
     
     # set list of valid models
-    valid_models = ['dummy', 'lstm', 'rf','tcn']
+    valid_models = ['DUMMY', 'LSTM', 'RF','TCN']
     
     # find which model to use
-    while model.lower() not in valid_models:
+    while model.upper() not in valid_models:
         model = input("Please choose a model:\n Choices are 'Dummy', 'LSTM', 'RF','TCN'\n")
     print("The {} model will be used.".format(model))
     
     # if not using dummy, ask the other parameters
-    if model.lower() != "dummy":
+    if model.upper() != "DUMMY":
         hyperparam_opt = input("Would you like to perform hyperparameter tuning (1 for true/0 for false)?\n")
         history_window = input("How long would you like the history window to be (days)?\nMust be 2, 10, 50, 100 or 150 if no tuning is done.\n")
     
