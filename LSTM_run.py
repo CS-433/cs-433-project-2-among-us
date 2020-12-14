@@ -15,14 +15,41 @@
 
 import numpy as np
 import pandas as pd
-import sys
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
-import Models.RF.p_indicators as p_ind
+from keras.optimizers import Adam
+from Helpers.p_indicators import p_inds
+from kerastuner import BayesianOptimization
+from kerastuner import HyperModel
+
+
+class MyHyperModel(HyperModel):
+
+    def __init__(self, X_shape1, X_shape2, Y_shape):
+        self.X_shape1 = X_shape1
+        self.X_shape2 = X_shape2
+        self.Y_shape = Y_shape
+
+    def build(self, hp):
+        unit_num = hp.Int('units',min_value=8, max_value=64, step=8)
+        
+        model = Sequential()
+        model.add(LSTM(units=unit_num, activation='relu', \
+                           input_shape=(self.X_shape1, self.X_shape2),\
+                        return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(unit_num, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(self.Y_shape, activation='softmax'))
+    
+        model.compile(loss='categorical_crossentropy', \
+                      optimizer=Adam(hp.Choice('learning_rate',values=[1e-2, 1e-3, 1e-4])),
+                      metrics=['acc'])
+        return model  
 
 
 def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
@@ -86,57 +113,68 @@ def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
     X_test = X_test / float(n_classes)
     
     # one hot encode the output variable
-    Y_encoded = np.utils.to_categorical(dataY)
+    Y_encoded = np_utils.to_categorical(dataY)
     Y_train = Y_encoded[:n_train]
     Y_test = Y_encoded[n_train:]
     
     return X_train, Y_train, X_test, Y_test
-    
 
-def create_LSTM_model():
-    pass
     
-def hyperparameter_tune():
-    pass
-
-def test_data():
-    pass
+def lstm_predict(hyperparam_opt, history_window):
+    # filename
+    in_file_path = './Data/preprocessed.csv'
+    # load the data
+    df = pd.read_csv(in_file_path,index_col=0)
+    X_train, Y_train, X_test, Y_test = prepare_data(df, history_window)
     
-def train_model():
-    pass
+    # define the model path
+    filepath="./Models/LSTM/model-lstm-{}mem.hdf5".format(history_window)
+    
+    if hyperparam_opt:
+        # perform hyperparam optimization
+        
+        # define the LSTM model
+        hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], \
+                                  Y_train.shape[1])
+        # define the optimization model
+        bayesian_opt_tuner = BayesianOptimization(
+            hypermodel,
+            objective='val_acc',
+            max_trials=5,
+            executions_per_trial=3,
+            directory='./Models/LSTM/',
+            project_name='tuning_{}mem'.format(history_window),
+            overwrite=True)
+        
+        # perform the hyperparameter optimization
+        bayesian_opt_tuner.search(X_train, Y_train,
+             epochs=5,
+             validation_data=(X_test, Y_test))
+        
+        # get the best model
+        best_model = bayesian_opt_tuner.get_best_models(num_models=1)[0]
+                
+        # fit data to model
+        best_model.fit(X_train, Y_train, epochs=50, batch_size=64)
+        
+        # save the model
+        best_model.save(filepath)
+        
+    else:
+        # don't perform hyperparameter optimization, just load the best model
+        best_model = load_model(filepath)
+    
+  
+    # predict
+    prediction = best_model.predict(X_test, verbose=0)
+    
+    # un-encode the y data
+    y_pred = np.argmax(prediction,axis=1)
+    Y_test_val = np.argmax(Y_test,axis=1)
+    
+    return y_pred, Y_test_val
 
     
 if __name__ == "__main__":
-    # if code ran standalone, perform LSTM
+    lstm_predict(True, 10)
     
-    # filenames
-    #in_file_path = './Data/cleaned_data_cutoff0_memory10_sparse_removed.csv'
-    in_file_path = './Data/cleaned_data_cutoff0_memory10_diag_most-common.csv'
-    out_file_path = './Data/cleaned_data.csv'
-    # load the data
-    df = pd.read_csv(in_file_path,index_col=0)
-    X_train, Y_train, X_test, Y_test = prepare_data(df,10)
-    
-    # define the LSTM model
-    model = Sequential()
-    model.add(LSTM(256, input_shape=(X_train.shape[1], X_train.shape[2]), return_sequences=True))
-    model.add(Dropout(0.2))
-    #for second layer
-    model.add(LSTM(256))
-    model.add(Dropout(0.2))
-    model.add(Dense(Y_train.shape[1], activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
-    
-    # define the checkpoint
-    #filepath="weights-diag-most-common-improvement-{epoch:02d}-{loss:.4f}.hdf5"
-    #checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-    #callbacks_list = [checkpoint]
-    
-    #%% run model
-    model.fit(X_train, Y_train, epochs=25, batch_size=64)#, callbacks=callbacks_list)
-    
-    # predict
-    prediction = model.predict(X_test, verbose=0)
-    y_pred = np.argmax(prediction,axis=1)
-    Y_test_val = np.argmax(Y_test,axis=1)
-    p_ind.p_inds(Y_test_val,y_pred,'hi')

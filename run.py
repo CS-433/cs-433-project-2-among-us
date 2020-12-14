@@ -16,7 +16,7 @@
 import pandas as pd
 
 from DM_run import dm_predict
-#from LSTM_run import lstm_predict
+from LSTM_run import lstm_predict
 from RF_run import rf_predict
 #from TCN_run import tcn_predict
 
@@ -51,7 +51,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
         y_pred, y_true = dm_predict()
     elif model.upper() == "LSTM":
         pass
-        #y_pred, y_true = lstm_predict(hyperparam_opt, history_window)
+        y_pred, y_true = lstm_predict(hyperparam_opt, history_window)
     elif model.upper() == "RF":
         pass
         y_pred, y_true = rf_predict(history_window, hyperparam_opt)
