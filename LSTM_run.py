@@ -15,6 +15,7 @@
 
 import numpy as np
 import pandas as pd
+from keras import backend as K
 from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -22,35 +23,89 @@ from keras.layers import LSTM
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
 from keras.optimizers import Adam
-from Helpers.p_indicators import p_inds
-from kerastuner import BayesianOptimization
-from kerastuner import HyperModel
+from kerastuner import BayesianOptimization, Hyperband, HyperModel, Objective
+from sklearn.metrics import f1_score
+import tensorflow as tf
 
 
 class MyHyperModel(HyperModel):
+    """ MYHYPERMODEL Custom Hypermodel with vector shapes
+        A custom hypermodel that includes the shapes of the vectors in its
+        definition to create the layers with the right sizes.
+    """
 
-    def __init__(self, X_shape1, X_shape2, Y_shape):
-        self.X_shape1 = X_shape1
-        self.X_shape2 = X_shape2
+    def __init__(self, X_timesteps, X_features, Y_shape):
+        """ __INIT__ Creates the hypermodel
+        
+
+        Parameters
+        ----------
+        X_timesteps : int
+            Number of timesteps in the X dataset given.
+        X_features : int
+            Number of features in the X dataset given.
+        Y_shape : int
+            dimensions of the Y vector. Corresponds to number of classes
+
+        Returns
+        -------
+        None.
+
+        """
+        self.X_timesteps = X_timesteps
+        self.X_features = X_features
         self.Y_shape = Y_shape
 
     def build(self, hp):
-        unit_num = hp.Int('units',min_value=8, max_value=64, step=8)
+        """ BUILD Build the custom HyperModel
         
+
+        Parameters
+        ----------
+        hp : Hyperparameter list
+            A list containing the hyperparameters to try.
+
+        Returns
+        -------
+        model : HyperModel
+            The custom hypermodel.
+
+        """
+        
+        # select the parameters to tune
+        unit_num = hp.Int('units',min_value=64, max_value=256, step=16)
+        learn_rate = hp.Choice('learning_rate',values=[1e-2, 1e-3, 1e-4])
+        act = hp.Choice('activation',
+                               values=['relu', 'sigmoid', 'tanh'])
+        num_layers = hp.Int('num_layers', min_value=1, max_value=3, step=1)
+        
+        # build the model
         model = Sequential()
-        model.add(LSTM(units=unit_num, activation='relu', \
-                           input_shape=(self.X_shape1, self.X_shape2),\
+        # input layer
+        model.add(LSTM(units=unit_num, activation=act, \
+                           input_shape=(self.X_timesteps, self.X_features),\
                         return_sequences=True))
         model.add(Dropout(0.2))
-        model.add(LSTM(unit_num, activation='relu'))
-        model.add(Dropout(0.2))
+        # build the first hidden layers
+        for i in range(0, num_layers):
+            # determine if on the last layer or not
+            # return sequences accordingly
+            if i == num_layers - 1:
+                ret_seq = False
+            else:
+                ret_seq = True
+            model.add(LSTM(unit_num, activation=act,return_sequences=ret_seq))
+            model.add(Dropout(0.2))
+        
+        # build the dense layer
         model.add(Dense(self.Y_shape, activation='softmax'))
     
+        # compile the model
         model.compile(loss='categorical_crossentropy', \
-                      optimizer=Adam(hp.Choice('learning_rate',values=[1e-2, 1e-3, 1e-4])),
+                      optimizer=Adam(learn_rate),
                       metrics=['acc'])
-        return model  
-
+        return model
+    
 
 def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
     """ PREPARE_DATA Puts the data in a format ready for keras LSTM
@@ -121,15 +176,37 @@ def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
 
     
 def lstm_predict(hyperparam_opt, history_window):
-    # filename
-    in_file_path = './Data/preprocessed.csv'
-    # load the data
-    df = pd.read_csv(in_file_path,index_col=0)
-    X_train, Y_train, X_test, Y_test = prepare_data(df, history_window)
+    """ LSTM_PREDICT Performs an LSTM prediction on the given data
+        Performs an LSTM prediction with or without hyperparameter optimization
+        Returns the predictions and the test data that was used
     
+
+    Parameters
+    ----------
+    hyperparam_opt : boolean
+        Whether or not to perform hyperparameter optimization.
+    history_window : int
+        The number of days to take in memory for the prediction.
+
+    Returns
+    -------
+    y_pred : numpy array
+        The predicted labels of the test data.
+    Y_test_val : numpy array
+        The true labels of the test data..
+
+    """
+    
+    # define input data path
+    in_file_path = './Data/preprocessed.csv'
     # define the model path
     filepath="./Models/LSTM/model-lstm-{}mem.hdf5".format(history_window)
     
+    # load the data
+    df = pd.read_csv(in_file_path,index_col=0)
+    # shape the data properly
+    X_train, Y_train, X_test, Y_test = prepare_data(df, history_window)
+     
     if hyperparam_opt:
         # perform hyperparam optimization
         
@@ -137,25 +214,43 @@ def lstm_predict(hyperparam_opt, history_window):
         hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], \
                                   Y_train.shape[1])
         # define the optimization model
-        bayesian_opt_tuner = BayesianOptimization(
-            hypermodel,
-            objective='val_acc',
-            max_trials=5,
-            executions_per_trial=3,
-            directory='./Models/LSTM/',
-            project_name='tuning_{}mem'.format(history_window),
-            overwrite=True)
+        tuner = Hyperband(hypermodel,
+                          objective='val_acc',
+                          max_epochs=25,
+                          factor=3,
+                          directory='./Models/LSTM/',
+                          project_name='tuning_{}mem'.format(history_window),
+                          overwrite=True)
+        # Bayesian optimizer. not used anymore
+        # tuner = BayesianOptimization(
+        #     hypermodel,
+        #     objective='val_acc',
+        #     max_trials=1,
+        #     executions_per_trial=1,
+        #     directory='./Models/LSTM/',
+        #     project_name='tuning_{}mem'.format(history_window),
+        #     overwrite=True)
         
         # perform the hyperparameter optimization
-        bayesian_opt_tuner.search(X_train, Y_train,
-             epochs=5,
+        tuner.search(X_train, Y_train,
+             epochs=25,
              validation_data=(X_test, Y_test))
         
-        # get the best model
-        best_model = bayesian_opt_tuner.get_best_models(num_models=1)[0]
+        # Get the optimal hyperparameters
+        best_hps = \
+            tuner.get_best_hyperparameters(num_trials = 1)[0]
+        
+        # build the best model
+        best_model = hypermodel.build(best_hps)
+        # lazy way to get the best model. removed since above is better
+        #best_model = tuner.get_best_models(num_models=1)[0]
                 
         # fit data to model
-        best_model.fit(X_train, Y_train, epochs=50, batch_size=64)
+        best_model.fit(X_train, Y_train, epochs=250, batch_size=64)
+        
+        # print the best hyperparameters. done here after the fitting
+        # so it remains on the console and doesn't get lost
+        print(best_hps)
         
         # save the model
         best_model.save(filepath)
