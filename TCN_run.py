@@ -35,7 +35,7 @@ class MyHyperModel(HyperModel):
      #define a  TCN model-building function. It takes an hp argument from which you can sample hyperparameters
      
      # perform the tuning of teh parameters on the model and then return the output of the tuned model
-    def build_model(self, hp):
+    def build(self, hp):
          """Build the custom HyperModel
          
          
@@ -54,7 +54,7 @@ class MyHyperModel(HyperModel):
          # build the model with different hyperparameters choice
          i = Input(shape=(self.X_timesteps, 1))
          
-         tcn_layer = TCN(kernel_size=hp.Int('kernel_size',min_value=2, max_value=8, step=1), nb_stacks=hp.Int('nb_stacks', min_value=1, max_value=3, step=1), dilations=(1, 2, 4, 8, 16,32,64), padding='causal',dropout_rate=hp.Float('dropout_rate', min_value=0.0, max_value=0.9, step=0.1))
+         tcn_layer = TCN(kernel_size=3, nb_stacks=1, dilations=(1, 2, 4, 8, 16,32), padding='causal',dropout_rate=hp.Float('dropout_rate', min_value=0.0, max_value=0.5, step=0.1))
          
          #the tcn layers are here
          o = tcn_layer(i)
@@ -64,7 +64,7 @@ class MyHyperModel(HyperModel):
          model = Model(inputs=[i], outputs=[o])
          
          #compile the model
-         model.compile(loss='categorical_crossentropy', optimizer=Adam(hp.Choice('learning_rate',values=[1e-2, 1e-3, 1e-4])),metrics=['acc'])
+         model.compile('adam','categorical_crossentropy', metrics=['acc'])
          
          #show receptive field and ckeck if you have full history coverage
          print(tcn_layer.receptive_field)
@@ -75,7 +75,9 @@ class MyHyperModel(HyperModel):
          #detailed summary with residual blocks expanded
          tcn_full_summary(model, expand_residual_blocks=False)
          
-         return model
+         return model  
+     
+        
      
 def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
     """ PREPARE_DATA Puts the data in a format ready for keras LSTM
@@ -173,18 +175,18 @@ def tcn_predict(hyperparam_opt, history_window):
         
          if hyperparam_opt:
              #perform hyperparam optimization
-            
+             epoch_num = 3
             
             #define the tcn model
              hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], Y_train.shape[1])
             
              #define the optimizer
-             tuner = Hyperband(hypermodel,objective='val_accuracy', max_epochs=30, hyperband_iterations=1, directory='./Models/TCN/', project_name='tuning_{}mem'.format(history_window), overwrite=True)
+             tuner = Hyperband(hypermodel, objective='val_acc', max_epochs=epoch_num, factor=3, directory='./Models/TCN/', project_name='tuning_{}mem'.format(history_window), overwrite=True)
              # perform the hyperparameter optimization
              
              tuner.search_space_summary()
              
-             tuner.search(X_train,Y_train,epochs=30,validation_data=(X_test, Y_test))
+             tuner.search(X_train,Y_train,epochs=epoch_num,validation_data=(X_test, Y_test))
              #tuner.search(X_train,Y_train,epochs=30,validation_data=(X_test, Y_test),callbacks=[tf.keras.callbacks.EarlyStopping(patience=1)])
              
              tuner.results_summary()
@@ -196,7 +198,7 @@ def tcn_predict(hyperparam_opt, history_window):
              best_model = hypermodel.build(best_hps)
              
              #fit data to model
-             best_model.fit(X_train, Y_train, epochs=30)
+             best_model.fit(X_train, Y_train, epochs=epoch_num)
              
              # print the best hyperparameters. done here after the fitting
              # so it remains on the console and doesn't get lost
@@ -227,7 +229,7 @@ def tcn_predict(hyperparam_opt, history_window):
   
 if __name__ == "__main__":
     tcn_predict(True, 10)
-       
+
            
           
                
