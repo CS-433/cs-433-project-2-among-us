@@ -209,18 +209,12 @@ def lstm_predict(hyperparam_opt, history_window):
      
     if hyperparam_opt:
         # perform hyperparam optimization
+        epoch_num = 3
         
         # define the LSTM model
         hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], \
                                   Y_train.shape[1])
-        # define the optimization model
-        tuner = Hyperband(hypermodel,
-                          objective='val_acc',
-                          max_epochs=25,
-                          factor=3,
-                          directory='./Models/LSTM/',
-                          project_name='tuning_{}mem'.format(history_window),
-                          overwrite=True)
+        
         # Bayesian optimizer. not used anymore
         # tuner = BayesianOptimization(
         #     hypermodel,
@@ -231,9 +225,17 @@ def lstm_predict(hyperparam_opt, history_window):
         #     project_name='tuning_{}mem'.format(history_window),
         #     overwrite=True)
         
+        # define the optimizer
+        tuner = Hyperband(hypermodel,
+                          objective='val_acc',
+                          max_epochs=epoch_num,
+                          factor=3,
+                          directory='./Models/LSTM/',
+                          project_name='tuning_{}mem'.format(history_window),
+                          overwrite=True)
         # perform the hyperparameter optimization
         tuner.search(X_train, Y_train,
-             epochs=25,
+             epochs=epoch_num,
              validation_data=(X_test, Y_test))
         
         # Get the optimal hyperparameters
@@ -246,11 +248,17 @@ def lstm_predict(hyperparam_opt, history_window):
         #best_model = tuner.get_best_models(num_models=1)[0]
                 
         # fit data to model
-        best_model.fit(X_train, Y_train, epochs=250, batch_size=64)
+        best_model.fit(X_train, Y_train, epochs=5, batch_size=64)
         
         # print the best hyperparameters. done here after the fitting
         # so it remains on the console and doesn't get lost
-        print(best_hps)
+        print(f"""
+        The hyperparameter search is complete.\n
+        Unit number: {best_hps.get('units')}\n
+        Learn rate: {best_hps.get('learning_rate')}\n
+        Activation function: {best_hps.get('activation')}\n
+        Number of layers: {best_hps.get('num_layers')}\n
+        """)
         
         # save the model
         best_model.save(filepath)
