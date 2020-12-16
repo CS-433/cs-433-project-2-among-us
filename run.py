@@ -57,7 +57,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
         y_pred, y_true = rf_predict(history_window, hyperparam_opt)
     elif model.upper() == "TCN":
         pass
-        #y_pred, y_true = tcn_predict(hyperparam_opt, history_windowR)
+        #y_pred, y_true = tcn_predict(hyperparam_opt, history_window)
     else:
         print("Unknown model chosen: ", model)
         

@@ -15,17 +15,13 @@
 
 import numpy as np
 import pandas as pd
-from keras import backend as K
-from keras.models import Sequential, load_model
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import LSTM
-from keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import LSTM
 from keras.utils import np_utils
-from keras.optimizers import Adam
-from kerastuner import BayesianOptimization, Hyperband, HyperModel, Objective
-from sklearn.metrics import f1_score
-import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+from kerastuner import Hyperband, HyperModel
 
 
 class MyHyperModel(HyperModel):
@@ -209,7 +205,9 @@ def lstm_predict(hyperparam_opt, history_window):
      
     if hyperparam_opt:
         # perform hyperparam optimization
-        epoch_num = 3
+        
+        hyp_epoch_num = 25
+        final_epoch_num = 50
         
         # define the LSTM model
         hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], \
@@ -228,14 +226,16 @@ def lstm_predict(hyperparam_opt, history_window):
         # define the optimizer
         tuner = Hyperband(hypermodel,
                           objective='val_acc',
-                          max_epochs=epoch_num,
+                          max_epochs=hyp_epoch_num,
                           factor=3,
+                          hyperband_iterations=2,
+                          executions_per_trial=2,
                           directory='./Models/LSTM/',
                           project_name='tuning_{}mem'.format(history_window),
                           overwrite=True)
         # perform the hyperparameter optimization
         tuner.search(X_train, Y_train,
-             epochs=epoch_num,
+             epochs=hyp_epoch_num,
              validation_data=(X_test, Y_test))
         
         # Get the optimal hyperparameters
@@ -248,7 +248,7 @@ def lstm_predict(hyperparam_opt, history_window):
         #best_model = tuner.get_best_models(num_models=1)[0]
                 
         # fit data to model
-        best_model.fit(X_train, Y_train, epochs=5, batch_size=64)
+        best_model.fit(X_train, Y_train, epochs=final_epoch_num, batch_size=64)
         
         # print the best hyperparameters. done here after the fitting
         # so it remains on the console and doesn't get lost
@@ -279,5 +279,5 @@ def lstm_predict(hyperparam_opt, history_window):
 
     
 if __name__ == "__main__":
-    lstm_predict(True, 10)
+    lstm_predict(True, 3)
     
