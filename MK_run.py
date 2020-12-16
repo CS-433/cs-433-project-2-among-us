@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Dummy machine learning classifier for the market states prediction
+Markovian machine learning classifier for the market states prediction
 Created by : BenMobility
 Created on Sat Dec  12 15:29:25 2020
 Modified on : 
 
 UPDATE : 
-    1- only take the markov dummy classifier
+    1- only take the markov classifier
     2- make it a function out of it
 
 """
@@ -39,8 +39,8 @@ def train_test_split(data, n_train):
     """
     return data[:n_train, :], data[n_train:, :]
 
-#dummy prediction
-def dm_predict():
+#markovian prediction
+def mk_predict():
     """
     Parameters
     ----------

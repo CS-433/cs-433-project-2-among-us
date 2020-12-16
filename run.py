@@ -15,7 +15,7 @@
 
 import pandas as pd
 
-from DM_run import dm_predict
+from MK_run import mk_predict
 from LSTM_run import lstm_predict
 from RF_run import rf_predict
 #from TCN_run import tcn_predict
@@ -33,7 +33,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     Parameters
     ----------
     model : String
-        Which model to run. Either "Dummy", "LSTM", "RF" or "TCN".
+        Which model to run. Either "MK", "LSTM", "RF" or "TCN".
     hyperparam_opt : Boolean
         Whether to perform a hyperparameter optimization or not.
     history_window : int
@@ -46,9 +46,9 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
     """
     
     print("Performing prediction with {} model.".format(model))
-    if model.upper() == "DUMMY":
+    if model.upper() == "MK":
         pass
-        y_pred, y_true = dm_predict()
+        y_pred, y_true = mk_predict()
     elif model.upper() == "LSTM":
         pass
         y_pred, y_true = lstm_predict(hyperparam_opt, history_window)
@@ -92,15 +92,15 @@ if __name__ == "__main__":
     history_window = 1
     
     # set list of valid models
-    valid_models = ['DUMMY', 'LSTM', 'RF','TCN']
+    valid_models = ['MK', 'LSTM', 'RF','TCN']
     
     # find which model to use
     while model.upper() not in valid_models:
-        model = input("Please choose a model:\n Choices are 'Dummy', 'LSTM', 'RF','TCN'\n")
+        model = input("Please choose a model:\n Choices are 'MK', 'LSTM', 'RF','TCN'\n")
     print("The {} model will be used.".format(model))
     
-    # if not using dummy, ask the other parameters
-    if model.upper() != "DUMMY":
+    # if not using Markov, ask the other parameters
+    if model.upper() != "MK":
         hyperparam_opt = input("Would you like to perform hyperparameter tuning (1 for true/0 for false)?\n")
         history_window = input("How long would you like the history window to be (days)?\nMust be 2, 10, 50, 100 or 150 if no tuning is done.\n")
     

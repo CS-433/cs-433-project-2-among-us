@@ -8,7 +8,7 @@ Modified on : Sat Dec 12 12:44:22 2020
 
 Update : 
     1- delete the plot title since it will be added in latex later on
-    2- Adding the dummy classifier
+    2- Adding the MK classifier
 """
 import seaborn as sns
 import pandas as pd
@@ -19,7 +19,7 @@ def perf_comp(df):
     #in_file_path = './Data/Results.csv'
     #df = pd.read_csv(in_file_path)
     
-    plot_data = df.loc[df['Model'] != 'DUMMY'] # remove dummy from bars
+    plot_data = df.loc[df['Model'] != 'MK'] # remove Markov from bars
     plt.close('all') # close open graphs
     
     # ACCURACY PLOT
@@ -27,8 +27,8 @@ def perf_comp(df):
                     kind='bar', palette="ch:s=.25,rot=-.25")
     g.despine(left=True)
     
-    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'accuracy'].values)
-    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'accuracy'], 'DUMMY', \
+    plt.axhline(df.loc[(df['Model'] == 'MK'),'accuracy'].values)
+    plt.text(5, df.loc[(df['Model'] == 'MK'),'accuracy'], 'MK', \
              fontsize=9, va='center', ha='center')
     
     plt.savefig('Figures\overall_accuracy.pdf', dpi=1080)
@@ -39,8 +39,8 @@ def perf_comp(df):
                     kind='bar', palette="ch:.25") 
     g.despine(left=True)
     
-    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'recall'].values)
-    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'recall'], 'DUMMY', \
+    plt.axhline(df.loc[(df['Model'] == 'MK'),'recall'].values)
+    plt.text(5, df.loc[(df['Model'] == 'MK'),'recall'], 'MK', \
              fontsize=9, va='center', ha='center')
         
     plt.savefig('Figures\overall_recall.pdf', dpi =1080)
@@ -51,8 +51,8 @@ def perf_comp(df):
                     kind='bar', palette="ch:s=.25,rot=-.25")
     g.despine(left=True)
     
-    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'f1'].values)
-    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'f1'], 'DUMMY', \
+    plt.axhline(df.loc[(df['Model'] == 'MK'),'f1'].values)
+    plt.text(5, df.loc[(df['Model'] == 'MK'),'f1'], 'MK', \
              fontsize=9, va='center', ha='center')
         
     plt.savefig('Figures\overall_f1-score.pdf', dpi=1080)
@@ -63,8 +63,8 @@ def perf_comp(df):
                     kind='bar', palette="ch:s=.25,rot=-.25")
     g.despine(left=True)
     
-    plt.axhline(df.loc[(df['Model'] == 'DUMMY'),'precision'].values)
-    plt.text(5, df.loc[(df['Model'] == 'DUMMY'),'precision'], 'DUMMY', \
+    plt.axhline(df.loc[(df['Model'] == 'MK'),'precision'].values)
+    plt.text(5, df.loc[(df['Model'] == 'MK'),'precision'], 'MK', \
              fontsize=9, va='center', ha='center')
         
     plt.savefig('Figures\overall_precision.pdf', dpi=1080)
