@@ -18,7 +18,7 @@ import pandas as pd
 from MK_run import mk_predict
 from LSTM_run import lstm_predict
 from RF_run import rf_predict
-#from TCN_run import tcn_predict
+from TCN_run import tcn_predict
 
 from Helpers.p_indicators import p_inds
 from Helpers.performance_comparison import perf_comp
@@ -45,7 +45,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
 
     """
     
-    print("Performing prediction with {} model.".format(model))
+    print("Performing prediction with {} model.".format(model.upper()))
     if model.upper() == "MK":
         pass
         y_pred, y_true = mk_predict()
@@ -56,8 +56,7 @@ def run_models(model, history_window=10, hyperparam_opt=False, \
         pass
         y_pred, y_true = rf_predict(history_window, hyperparam_opt)
     elif model.upper() == "TCN":
-        pass
-        #y_pred, y_true = tcn_predict(hyperparam_opt, history_window)
+        y_pred, y_true = tcn_predict(hyperparam_opt, history_window)
     else:
         print("Unknown model chosen: ", model)
         
@@ -97,7 +96,7 @@ if __name__ == "__main__":
     # find which model to use
     while model.upper() not in valid_models:
         model = input("Please choose a model:\n Choices are 'MK', 'LSTM', 'RF','TCN'\n")
-    print("The {} model will be used.".format(model))
+    print("The {} model will be used.".format(model.upper()))
     
     # if not using Markov, ask the other parameters
     if model.upper() != "MK":

@@ -72,15 +72,16 @@ class MyHyperModel(HyperModel):
         unit_num = hp.Int('units',min_value=64, max_value=256, step=16)
         learn_rate = hp.Choice('learning_rate',values=[1e-2, 1e-3, 1e-4])
         act = hp.Choice('activation',
-                               values=['relu', 'sigmoid', 'tanh'])
+                        values=['sigmoid', 'tanh'])
         num_layers = hp.Int('num_layers', min_value=1, max_value=3, step=1)
         
         # build the model
         model = Sequential()
         # input layer
-        model.add(LSTM(units=unit_num, activation=act, \
-                           input_shape=(self.X_timesteps, self.X_features),\
-                        return_sequences=True))
+        model.add(LSTM(units=unit_num,
+                       activation=act,
+                       input_shape=(self.X_timesteps, self.X_features),
+                       return_sequences=True))
         model.add(Dropout(0.2))
         # build the first hidden layers
         for i in range(0, num_layers):
@@ -97,7 +98,7 @@ class MyHyperModel(HyperModel):
         model.add(Dense(self.Y_shape, activation='softmax'))
     
         # compile the model
-        model.compile(loss='categorical_crossentropy', \
+        model.compile(loss='categorical_crossentropy',
                       optimizer=Adam(learn_rate),
                       metrics=['acc'])
         return model
@@ -210,7 +211,8 @@ def lstm_predict(hyperparam_opt, history_window):
         final_epoch_num = 50
         
         # define the LSTM model
-        hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], \
+        hypermodel = MyHyperModel(X_train.shape[1],
+                                  X_train.shape[2],
                                   Y_train.shape[1])
         
         # Bayesian optimizer. not used anymore
@@ -235,12 +237,11 @@ def lstm_predict(hyperparam_opt, history_window):
                           overwrite=True)
         # perform the hyperparameter optimization
         tuner.search(X_train, Y_train,
-             epochs=hyp_epoch_num,
-             validation_data=(X_test, Y_test))
+                     epochs=hyp_epoch_num,
+                     validation_data=(X_test, Y_test))
         
         # Get the optimal hyperparameters
-        best_hps = \
-            tuner.get_best_hyperparameters(num_trials = 1)[0]
+        best_hps = tuner.get_best_hyperparameters(num_trials = 1)[0]
         
         # build the best model
         best_model = hypermodel.build(best_hps)
@@ -280,4 +281,3 @@ def lstm_predict(hyperparam_opt, history_window):
     
 if __name__ == "__main__":
     lstm_predict(True, 3)
-    

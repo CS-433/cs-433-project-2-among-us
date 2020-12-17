@@ -64,7 +64,7 @@ def perf_comp(df):
     g.despine(left=True)
     
     plt.axhline(df.loc[(df['Model'] == 'MK'),'precision'].values)
-    plt.text(5, df.loc[(df['Model'] == 'MK'),'precision'], 'MK', \
+    plt.text(4, df.loc[(df['Model'] == 'MK'),'precision'], 'MK', \
              fontsize=9, va='center', ha='center')
         
     plt.savefig('Figures\overall_precision.pdf', dpi=1080)

@@ -2,18 +2,20 @@
 import numpy as np
 import pandas as pd
 from tensorflow.keras import Input, Model
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from tensorflow.keras.layers import Dense
 from keras.utils import np_utils
 from kerastuner import Hyperband, HyperModel
-from keras.optimizers import Adam
 from tcn import TCN, tcn_full_summary
+from LSTM_run import prepare_data
 
 
 class MyHyperModel(HyperModel):
+    """ MYHYPERMODEL Custom Hypermodel with vector shapes
+        A custom hypermodel that includes the shapes of the vectors in its
+        definition to create the layers with the right sizes.
+    """
     
-    """MYHYPERMODEL
-     """
     def __init__(self, X_timesteps, X_features, Y_shape):
         """ __INIT__ Creates the hypermodel
         
@@ -32,11 +34,11 @@ class MyHyperModel(HyperModel):
         self.X_timesteps = X_timesteps
         self.X_features = X_features
         self.Y_shape = Y_shape
-     #define a  TCN model-building function. It takes an hp argument from which you can sample hyperparameters
-     
-     # perform the tuning of teh parameters on the model and then return the output of the tuned model
+        
     def build(self, hp):
-         """Build the custom HyperModel
+         """ Build the custom HyperModel
+             Define a  TCN model-building function.
+             It takes an hp argument from which you can sample hyperparameters
          
          
          Parameters
@@ -51,10 +53,35 @@ class MyHyperModel(HyperModel):
          The custom hypermodel.
          
          """
-         # build the model with different hyperparameters choice
-         i = Input(shape=(self.X_timesteps, 1))
          
-         tcn_layer = TCN(kernel_size=3, nb_stacks=1, dilations=(1, 2, 4, 8, 16,32), padding='causal',dropout_rate=hp.Float('dropout_rate', min_value=0.0, max_value=0.5, step=0.1))
+         
+         # select the parameters to tune
+         # common values
+         dropout = hp.Float('dropout_rate', default=0.0,
+                            min_value=0.0, max_value=0.7, step=0.1)
+         if self.X_timesteps < 50:
+             # choice for models for 2 or 10 days in memory.
+             filters = hp.Int('nb_filters', default=64,
+                              min_value=8, max_value=64, step=8)
+             kern_sz = hp.Int('kernel_size', default=2,
+                                min_value=2, max_value=7, step=1)
+         else:
+             # choice for models with 50, 100 or 150 days in memory.
+             filters = hp.Int('nb_filters', default=64,
+                              min_value=64, max_value=64)
+             kern_sz = hp.Int('kernel_size', min_value=2, max_value=3, step=1)
+         
+         # setup the input layer
+         i = Input(shape=(self.X_timesteps, self.X_features))
+         
+         
+         # build the model with different hyperparameters choice
+         tcn_layer = TCN(nb_filters=filters,
+                         kernel_size=kern_sz,
+                         nb_stacks=1,
+                         dilations=(1, 2, 4, 8, 16,32,64),
+                         padding='causal',
+                         dropout_rate=dropout)
          
          #the tcn layers are here
          o = tcn_layer(i)
@@ -68,170 +95,113 @@ class MyHyperModel(HyperModel):
          
          #show receptive field and ckeck if you have full history coverage
          print(tcn_layer.receptive_field)
-         if tcn_layer.receptive_field>=self.X_timesteps:
+         if tcn_layer.receptive_field >= self.X_timesteps:
               print('full history coverage assured')
          
-         
-         #detailed summary with residual blocks expanded
+         #detailed summary with the 5 residual blocks
          tcn_full_summary(model, expand_residual_blocks=False)
          
          return model  
      
-        
      
-def prepare_data(df, memory, valid_ratio=0.8, form='timestep'):
-    """ PREPARE_DATA Puts the data in a format ready for keras LSTM
-        Prepares the data found in the database df into a format ready for
-        keras LSTM using the last 'memory' days as a moving window.
-    
+def tcn_predict(hyperparam_opt, history_window):
+    """ TCN_PREDICT Performs an TCN prediction on the given data
+    Performs an TCN prediction with or without hyperparameter optimization
+    Returns the predictions and the test data that was used
+
     Parameters
     ----------
-    df : Pandas dataframe (N x (D+1))
-        Dataframe to prepare data with N datapoints each having D+1 features
-        The D + 1 features represent the last D day states and the day's state
-    memory : int
-        Number of days to take for the moving window
-    valid_ratio : float
-        The fraction of data to take for the training set
-        Default is 0.8
-    form : string, either 'timestep' or 'feature'
-        The format to give the X array. Either the last 'memory' days are
-        taken as a feature or as a timestep.
-        Default is'timestep'
+    hyperparam_opt : boolean
+        Whether or not to perform hyperparameter optimization.
+    history_window : int
+        The number of days to take in memory for the prediction.
     Returns
     -------
-    X_train : Numpy array (N x (memory * valid_ratio) x 1) or
-                          (N x 1 x (memory * valid_ratio))
-        An array representing the features/timesteps for the training data
-    Y_train : Numpy array (N x 1)
-        A numpy array representing the true labels for the training data
-    X_test : Numpy array (N x (memory * (1 - valid_ratio)) x 1) or
-                          (N x 1 x (memory * (1 - valid_ratio)))
-        An array representing the features/timesteps for the testing data
-    Y_test : Numpy array (N x 1)
-        A numpy array representing the true labels for the testing data
-        """
+    y_pred : numpy array
+        The predicted labels of the test data.
+    Y_test_val : numpy array
+        The true labels of the test data..
+    """
     
-    df_numpy = df.to_numpy() # put the dataframe in numpy
+    # define input data path
+    in_file_path = './Data/preprocessed.csv'
+    # define the model path
+    filepath="./Models/TCN/model-tcn-{}mem.hdf5".format(history_window)
     
-         # find quantities for splitting
-    N = len(df_numpy)
-    n_train = int(N * valid_ratio)
-    n_test = N - n_train
-    n_classes = len(np.unique(df_numpy))
+    # load the data
+    df = pd.read_csv(in_file_path,index_col=0)
+    # shape the data properly
+    X_train, Y_train, X_test, Y_test = prepare_data(df, history_window)
     
-         # get X and Y data
-    dataX = df_numpy[:,1:]
-    dataY = df_numpy[:,0]
+    if hyperparam_opt:
+        #perform hyperparam optimization
+        epoch_num = 25
         
-        # reshape X to be [samples, time steps, features]
-    if form == 'feature':
-        X_train = np.reshape(dataX[:n_train,:memory], (n_train, 1, memory))
-        X_test = np.reshape(dataX[n_train:n_test,:memory], (n_test, 1, memory))
-    else: # default to timestep, even if form was wrongly defined
-        X_train = np.reshape(dataX[:n_train,:memory], (n_train, memory, 1))
-        X_test = np.reshape(dataX[n_train:,:memory], (n_test, memory, 1))
+        #define the tcn model
+        hypermodel = MyHyperModel(X_train.shape[1],
+                                  X_train.shape[2],
+                                  Y_train.shape[1])
         
-        # normalize
-        X_train = X_train / float(n_classes)
-        X_test = X_test / float(n_classes)
-    
-        # one hot encode the output variable
-        Y_encoded = np_utils.to_categorical(dataY)
-        Y_train = Y_encoded[:n_train]
-        Y_test = Y_encoded[n_train:]
-    
-        return X_train, Y_train, X_test, Y_test
-                
+        #define the optimizer
+        tuner = Hyperband(hypermodel,
+                          objective='val_acc',
+                          max_epochs=epoch_num,
+                          factor=3, directory='./Models/TCN/',
+                          project_name='tuning_{}mem'.format(history_window),
+                          overwrite=True)
+        
+        # perform the hyperparameter optimization
+        tuner.search_space_summary()
          
-def tcn_predict(hyperparam_opt, history_window):
-         """ TCN_PREDICT Performs an TCN prediction on the given data
-        Performs an TCN prediction with or without hyperparameter optimization
-        Returns the predictions and the test data that was used
+        # perform the tuning of the parameters on the model
+        # and then return the output of the tuned model
+        tuner.search(X_train,
+                     Y_train,
+                     epochs=epoch_num,
+                     validation_data=(X_test, Y_test))
+        # tuner.search(X_train,
+        #              Y_train,
+        #              epochs=30,
+        #              validation_data=(X_test, Y_test),
+        #              callbacks=[tf.keras.callbacks.EarlyStopping(patience=1)])
+         
+        tuner.results_summary()
+         
+        #get best hyperparameters
+        best_hps = tuner.get_best_hyperparameters(num_trials = 1)[0]
+         
+        # build the best model
+        best_model = hypermodel.build(best_hps)
+         
+        #fit data to model
+        best_model.fit(X_train, Y_train, epochs=epoch_num)
+         
+        # print the best hyperparameters. done here after the fitting
+        # so it remains on the console and doesn't get lost
+        print(f"""
+        The hyperparameter search is complete.\n
+        Number of filters: {best_hps.get('nb_filters')}\n
+        Kernel size: {best_hps.get('kernel_size')}\n
+        Dropout rate: {best_hps.get('dropout_rate')}\n
+        """)
+         
+        # save the model
+        best_model.save(filepath)
+         
+         
+    else:
+        #don't perform hyperparameter tuning, just directly load best model
+        best_model = load_model(filepath, custom_objects={'TCN': TCN})
+         
+    # predict
+    prediction = best_model.predict(X_test, verbose=0)
     
-        Parameters
-        ----------
-        hyperparam_opt : boolean
-            Whether or not to perform hyperparameter optimization.
-        history_window : int
-            The number of days to take in memory for the prediction.
-        Returns
-        -------
-        y_pred : numpy array
-            The predicted labels of the test data.
-        Y_test_val : numpy array
-            The true labels of the test data..
-        """
-        
-        # define input data path
-         in_file_path = './Data/preprocessed.csv'
-        # define the model path
-         filepath="./Models/TCN/model-tcn-{}mem.hdf5".format(history_window)
-        
-        # load the data
-         df = pd.read_csv(in_file_path,index_col=0)
-        # shape the data properly
-         X_train, Y_train, X_test, Y_test = prepare_data(df, history_window)
-        
-         if hyperparam_opt:
-             #perform hyperparam optimization
-             epoch_num = 3
-            
-            #define the tcn model
-             hypermodel = MyHyperModel(X_train.shape[1], X_train.shape[2], Y_train.shape[1])
-            
-             #define the optimizer
-             tuner = Hyperband(hypermodel, objective='val_acc', max_epochs=epoch_num, factor=3, directory='./Models/TCN/', project_name='tuning_{}mem'.format(history_window), overwrite=True)
-             # perform the hyperparameter optimization
-             
-             tuner.search_space_summary()
-             
-             tuner.search(X_train,Y_train,epochs=epoch_num,validation_data=(X_test, Y_test))
-             #tuner.search(X_train,Y_train,epochs=30,validation_data=(X_test, Y_test),callbacks=[tf.keras.callbacks.EarlyStopping(patience=1)])
-             
-             tuner.results_summary()
-             
-             #get best hyperparameters
-             best_hps = tuner.get_best_hyperparameters(num_trials = 1)[0]
-             
-             # build the best model
-             best_model = hypermodel.build(best_hps)
-             
-             #fit data to model
-             best_model.fit(X_train, Y_train, epochs=epoch_num)
-             
-             # print the best hyperparameters. done here after the fitting
-             # so it remains on the console and doesn't get lost
-             # print(f"""
-             # The hyperparameter search is complete.\n
-             # : {best_hps.get('units')}\n
-             # Learn rate: {best_hps.get('learning_rate')}\n
-             # Activation function: {best_hps.get('activation')}\n
-             # Number of layers: {best_hps.get('num_layers')}\n
-             # """)
-             
-             # save the model
-             best_model.save(filepath)
-             
-             
-         else:
-             #don't perform hyperparameter tuning, just directly load best model
-             best_model = load_model(filepath)
-             
-        #predict
-         prediction = best_model.predict(X_test, verbose=0)
-        
-        # un-encode the y data
-         y_pred = np.argmax(prediction,axis=1)
-         Y_test_val = np.argmax(Y_test,axis=1)
-    
-         return y_pred, Y_test_val
-  
-if __name__ == "__main__":
-    tcn_predict(True, 10)
+    # un-encode the y data
+    y_pred = np.argmax(prediction,axis=1)
+    Y_test_val = np.argmax(Y_test,axis=1)
 
-           
-          
-               
-               
-               
+    return y_pred, Y_test_val
+  
+    
+if __name__ == "__main__":
+    y_pred, Y_test_val = tcn_predict(True, 150)
